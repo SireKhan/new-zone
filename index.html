@@ -27,6 +27,15 @@
   #controls{padding:12px 14px;border-bottom:1px solid var(--hair)}
   #q{width:100%;padding:7px 10px;background:#171c21;border:1px solid var(--hair);color:var(--panel-ink);font:13px ui-monospace,Consolas,monospace;border-radius:3px}
   #q::placeholder{color:#6f7982}
+  #gpsRow{display:flex;gap:5px;margin-top:6px}
+  #gps{flex:1;min-width:0;padding:7px 10px;background:#171c21;border:1px solid var(--hair);color:var(--panel-ink);font:12px ui-monospace,Consolas,monospace;border-radius:3px}
+  #gps::placeholder{color:#6f7982}
+  .pinDot{width:16px;height:16px;border-radius:50%;border:2px solid #0b3d40;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+  .leaflet-marker-draggable .pinDot{border-color:#fff;box-shadow:0 0 0 2px #0b3d40,0 1px 4px rgba(0,0,0,.5);cursor:grab}
+  .item{position:relative}
+  .item .del{position:absolute;top:8px;right:10px;width:18px;height:18px;border-radius:50%;border:1px solid #5a646e;background:transparent;color:#8b949c;font:11px/15px monospace;cursor:pointer;display:none}
+  .item:hover .del{display:block}
+  .item .del:hover{background:#c62828;border-color:#c62828;color:#fff}
   .flabel{font:9px ui-monospace,Consolas,monospace;color:#78828b;letter-spacing:.14em;text-transform:uppercase;margin:10px 0 5px}
   .filters{display:flex;flex-wrap:wrap;gap:5px}
   .chip{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border:1px solid var(--hair);border-radius:20px;font:10.5px ui-monospace,Consolas,monospace;cursor:pointer;user-select:none;color:#aeb6bd;letter-spacing:.03em}
@@ -91,6 +100,7 @@
   </div>
   <div class="hbtns">
     <button class="btn primary" id="addBtn">+ Add pin</button>
+    <button class="btn" id="dragBtn">Drag pins: off</button>
     <button class="btn gh" id="syncBtn">Sync to GitHub</button>
     <button class="btn" id="ghBtn">GitHub &#9881;</button>
     <button class="btn" id="exportBtn">Export</button>
@@ -103,11 +113,17 @@
   <aside id="side">
     <div id="controls">
       <input id="q" type="search" placeholder="Search names, notes, tags&hellip;">
+      <div class="flabel">GPS / location lookup</div>
+      <div id="gpsRow">
+        <input id="gps" type="search" placeholder="40.7128, -74.0060 &mdash; or a place name">
+        <button class="btn" id="gpsGo">Go</button>
+      </div>
       <div class="flabel">Status</div>
       <div class="filters" id="catFilters"></div>
       <div class="flabel">Your tags</div>
       <div class="filters" id="tagFilters"><span style="font:10px monospace;color:#6f7982">none yet — add tags to pins</span></div>
       <div id="count"></div>
+      <button class="btn" id="restoreHidden" style="display:none;margin-top:8px;width:100%">Restore removed pins</button>
     </div>
     <div id="list"></div>
   </aside>
@@ -171,13 +187,13 @@ const GH_KEY = "urbexAtlasGH.v1";
 
 /* ---------- state & persistence ---------- */
 let storageOK = true;
-let user = { version:1, pins:[], extras:{} };
+let user = { version:1, pins:[], extras:{}, hiddenBase:[] };
 let gh = { owner:"", repo:"", branch:"main", token:"" };
 
 function loadLocal(){
   try {
     const raw = localStorage.getItem(STORE_KEY);
-    if (raw) user = Object.assign({version:1,pins:[],extras:{}}, JSON.parse(raw));
+    if (raw) user = Object.assign({version:1,pins:[],extras:{},hiddenBase:[]}, JSON.parse(raw));
     const g = localStorage.getItem(GH_KEY);
     if (g) gh = Object.assign(gh, JSON.parse(g));
   } catch(e){ storageOK = false; }
@@ -204,6 +220,7 @@ function mergeUser(incoming){
   (incoming.pins||[]).forEach(p=>{ byId[p.id] = p; });
   user.pins = Object.values(byId);
   user.extras = Object.assign({}, user.extras, incoming.extras||{});
+  user.hiddenBase = [...new Set([...(user.hiddenBase||[]), ...(incoming.hiddenBase||[])])];
 }
 
 /* ---------- GitHub API ---------- */
@@ -296,14 +313,25 @@ BASE.forEach(s=>{
   baseMarkers[s.id]=m;
 });
 let pinMarkers = {};
+let dragEnabled = false;
+try { dragEnabled = localStorage.getItem("urbexAtlasDrag.v1") === "1"; } catch(e){}
+function pinIcon(col){
+  return L.divIcon({className:"", html:'<div class="pinDot" style="background:'+col+'"></div>', iconSize:[16,16], iconAnchor:[8,8]});
+}
 function rebuildPinMarkers(){
   Object.values(pinMarkers).forEach(m=>map.removeLayer(m));
   pinMarkers = {};
   user.pins.forEach(p=>{
     const col = (CATS[p.c]||CATS.custom).color;
-    const m = L.circleMarker([p.lat,p.lng],{radius:7.5,color:"#0b3d40",weight:1.6,fillColor:col,fillOpacity:.95});
+    const m = L.marker([p.lat,p.lng],{icon:pinIcon(col), draggable:dragEnabled});
     m.on("popupopen", ()=> m.setPopupContent(pinPopup(p)));
     m.bindPopup("…");
+    m.on("dragend", ()=>{
+      const ll = m.getLatLng();
+      p.lat = ll.lat; p.lng = ll.lng;
+      save(); render();
+      toast("Moved “"+p.n+"” to "+ll.lat.toFixed(4)+", "+ll.lng.toFixed(4));
+    });
     pinMarkers[p.id]=m;
   });
 }
@@ -344,7 +372,9 @@ function basePopup(s){
   const act = el("div","pp-actions");
   const b = el("button","pbtn", (x.note||(x.photos&&x.photos.length)?"Edit my notes / photos":"+ Add notes / photos"));
   b.onclick = ()=> openModal({mode:"extra", siteId:s.id, siteName:s.n});
-  act.appendChild(b); root.appendChild(act);
+  const rm = el("button","pbtn danger","Remove pin");
+  rm.onclick = ()=>{ if(confirm("Remove “"+s.n+"” from your map? (Restore it any time from the sidebar.)")){ deleteBase(s.id); } };
+  act.appendChild(b); act.appendChild(rm); root.appendChild(act);
   return root;
 }
 function pinPopup(p){
@@ -357,10 +387,28 @@ function pinPopup(p){
   root.appendChild(el("div","pp-region", p.lat.toFixed(4)+", "+p.lng.toFixed(4)));
   const act = el("div","pp-actions");
   const e1 = el("button","pbtn","Edit"); e1.onclick=()=>openModal({mode:"editPin", pinId:p.id});
-  const e2 = el("button","pbtn danger","Delete"); e2.onclick=()=>{ if(confirm("Delete this pin? (Photos already synced stay in the repo.)")){ user.pins=user.pins.filter(q=>q.id!==p.id); save(); refreshAll(); map.closePopup(); } };
+  const e2 = el("button","pbtn danger","Delete"); e2.onclick=()=>{ if(confirm("Delete this pin? (Photos already synced stay in the repo.)")){ deletePin(p.id); } };
   act.appendChild(e1); act.appendChild(e2); root.appendChild(act);
   return root;
 }
+
+/* ---------- deleting pins ---------- */
+function deletePin(id){
+  user.pins = user.pins.filter(q=>q.id!==id);
+  save(); refreshAll(); map.closePopup();
+  toast("Pin deleted.");
+}
+function deleteBase(id){
+  if (!user.hiddenBase.includes(id)) user.hiddenBase.push(id);
+  save(); render(); map.closePopup();
+  toast("Pin removed from your map — use “Restore removed pins” in the sidebar to bring it back.");
+}
+document.getElementById("restoreHidden").onclick=()=>{
+  const n = user.hiddenBase.length;
+  user.hiddenBase = [];
+  save(); render();
+  toast("Restored "+n+" removed pin"+(n===1?"":"s")+".");
+};
 
 /* ---------- filters / search / list ---------- */
 const activeCats = new Set(Object.keys(CATS));
@@ -421,6 +469,13 @@ function render(){
     it.innerHTML = `<div class="nm"><span class="bar" style="background:${CATS[cat].color}"></span>${obj.n}${hasMedia}</div>`+
                    `<div class="meta">${kind==="pin"?"your pin":obj.r} · ${CATS[cat].label}</div>`;
     it.onclick=()=>{ map.flyTo([obj.lat,obj.lng], Math.max(map.getZoom(),12), {duration:.7}); marker.openPopup(); };
+    const del = el("button","del","×"); del.title = kind==="pin" ? "Delete pin" : "Remove pin from map";
+    del.onclick=(e)=>{
+      e.stopPropagation();
+      if (kind==="pin"){ if(confirm("Delete “"+obj.n+"”? (Photos already synced stay in the repo.)")) deletePin(obj.id); }
+      else { if(confirm("Remove “"+obj.n+"” from your map? (Restore it any time from the sidebar.)")) deleteBase(obj.id); }
+    };
+    it.appendChild(del);
     listEl.appendChild(it);
   };
   user.pins.forEach(p=>{
@@ -430,12 +485,65 @@ function render(){
   });
   BASE.forEach(s=>{
     const m = baseMarkers[s.id];
-    if (visible("base",s)){ if(!map.hasLayer(m)) m.addTo(map); addRow("base",s,m); }
+    if (!user.hiddenBase.includes(s.id) && visible("base",s)){ if(!map.hasLayer(m)) m.addTo(map); addRow("base",s,m); }
     else if (map.hasLayer(m)) map.removeLayer(m);
   });
   document.getElementById("count").textContent = shown+" of "+(BASE.length+user.pins.length)+" shown";
+  const rb = document.getElementById("restoreHidden");
+  rb.style.display = user.hiddenBase.length ? "" : "none";
+  rb.textContent = "Restore "+user.hiddenBase.length+" removed pin"+(user.hiddenBase.length===1?"":"s");
 }
 function refreshAll(){ rebuildPinMarkers(); renderTagChips(); render(); updateStorageBar(); }
+
+/* ---------- drag toggle ---------- */
+const dragBtn=document.getElementById("dragBtn");
+function applyDragState(){
+  dragBtn.textContent = "Drag pins: " + (dragEnabled ? "on" : "off");
+  dragBtn.classList.toggle("gh", dragEnabled);
+  Object.values(pinMarkers).forEach(m=>{
+    if (!m.dragging) return;
+    dragEnabled ? m.dragging.enable() : m.dragging.disable();
+  });
+}
+dragBtn.onclick=()=>{
+  dragEnabled=!dragEnabled;
+  try { localStorage.setItem("urbexAtlasDrag.v1", dragEnabled ? "1" : "0"); } catch(e){}
+  applyDragState();
+  toast(dragEnabled ? "Drag mode on — drag your pins to reposition them (saved automatically)." : "Drag mode off — pins are locked.");
+};
+applyDragState();
+
+/* ---------- GPS / location search ---------- */
+let gpsMarker=null;
+function goToLatLng(lat,lng,label){
+  if (gpsMarker) map.removeLayer(gpsMarker);
+  gpsMarker = L.marker([lat,lng]).addTo(map);
+  gpsMarker.bindPopup((label?label+"<br>":"")+lat.toFixed(5)+", "+lng.toFixed(5)).openPopup();
+  gpsMarker.on("popupclose", ()=>{ if(gpsMarker){ map.removeLayer(gpsMarker); gpsMarker=null; } });
+  map.flyTo([lat,lng], Math.max(map.getZoom(),14), {duration:.9});
+}
+function parseCoords(str){
+  const m = str.trim().match(/^(-?\d+(?:\.\d+)?)\s*[,\s]\s*(-?\d+(?:\.\d+)?)$/);
+  if (!m) return null;
+  const lat=parseFloat(m[1]), lng=parseFloat(m[2]);
+  if (lat<-90||lat>90||lng<-180||lng>180) return null;
+  return [lat,lng];
+}
+async function gpsSearch(){
+  const q=document.getElementById("gps").value.trim();
+  if (!q) return;
+  const c=parseCoords(q);
+  if (c){ goToLatLng(c[0],c[1]); return; }
+  try {
+    const r=await fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&q="+encodeURIComponent(q));
+    if (!r.ok) throw new Error("lookup → "+r.status);
+    const j=await r.json();
+    if (!j.length){ toast("No match for “"+q+"” — try coordinates like 40.7128, -74.0060"); return; }
+    goToLatLng(parseFloat(j[0].lat), parseFloat(j[0].lon), j[0].display_name);
+  } catch(e){ toast("Location lookup failed: "+e.message); }
+}
+document.getElementById("gpsGo").onclick=gpsSearch;
+document.getElementById("gps").addEventListener("keydown", e=>{ if(e.key==="Enter") gpsSearch(); });
 
 /* ---------- add-pin mode ---------- */
 let adding=false, pendingLatLng=null;
