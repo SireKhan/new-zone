@@ -40,8 +40,7 @@
    "lastVisit": null,
    "demolishedDate": null,
    "demolitionNoted": null,
-   "built": null,
-   "r": "Eastern PA"
+   "built": null
   },
   {
    "id": "p1784645664715",
@@ -80,6 +79,25 @@
    "demolishedDate": null,
    "demolitionNoted": null,
    "built": null
+  },
+  {
+   "id": "p1784647813565",
+   "n": "Fort Miles Battery 223",
+   "lat": 38.93155908567326,
+   "lng": -74.95553791522981,
+   "c": "legal",
+   "r": "New Jersey",
+   "tags": [
+    "battery",
+    "visited"
+   ],
+   "d": "",
+   "photos": [],
+   "firstVisit": "2026-05-16",
+   "lastVisit": null,
+   "demolishedDate": null,
+   "demolitionNoted": null,
+   "built": null
   }
  ],
  "extras": {
@@ -97,7 +115,12 @@
   }
  },
  "hiddenBase": [],
- "baseMoves": {},
+ "baseMoves": {
+  "b10": [
+   39.984618368551985,
+   -75.07503032684328
+  ]
+ },
  "baseEdits": {
   "b98": {
    "n": "Suffolk County Sanatorium (Selden)",
