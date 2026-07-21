@@ -9,15 +9,27 @@
    "c": "home",
    "tags": [
     "visited",
-    "bank",
-    "beury",
-    "building"
+    "bank"
    ],
    "d": "",
    "photos": [
     "photos/p1784571174265-1784593455585-6.jpg"
    ]
+  },
+  {
+   "id": "p1784596200130",
+   "n": "George Wharton Pepper Middle School",
+   "lat": 39.89646771597391,
+   "lng": -75.24697601795198,
+   "c": "caution",
+   "tags": [
+    "poi"
+   ],
+   "d": "",
+   "photos": []
   }
  ],
- "extras": {}
+ "extras": {},
+ "hiddenBase": [],
+ "baseMoves": {}
 }
