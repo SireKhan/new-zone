@@ -101,12 +101,69 @@ Which fields show per modal mode:
 | `extra`     | no                 | yes (writes extras)| yes         |
 | `editBase`  | yes                | no (dates live in extras) | no   |
 
-## Adding copy lines (later phases)
+## The engine (Phase 2)
 
-Copy will live in `anniversary-copy.js` as data, keyed by
-`kind → tier → years` (see Phase 2). Placeholders: `{location}`, `{years}`,
-`{date}`, `{user}`, `{building_age}`. Precedence: **milestone > numberEgg >
-generic**; milestones (esp. 50 and 100) must never be overridden. Generic
-line selection is seeded/deterministic on `(siteId, years)`.
+`anniversary.js` is a **pure, DOM-free, side-effect-free** module exposed as
+`window.Anniversary`. It's deterministic — same inputs always give the same
+output, so a reopened card shows the same copy line — and it takes the date as
+an argument so it can be tested with a fake "today":
 
-_Phases 2–4 (engine, cards, Record tab) are not yet implemented._
+```js
+Anniversary.computeEvents(user, "2025-06-15", { copy, userName, baseName })
+```
+
+- `copy` — the pool object (defaults to `window.ANNIVERSARY_COPY`).
+- `userName` — name used for `{user}` and the past-70-years pronoun shift.
+- `baseName(siteId)` — resolves a built-in site's display name (the engine
+  never reaches into the app's `BASE` global; the app injects this).
+
+Returned events:
+
+```js
+{ siteId, siteName, kind:"visit"|"demolition", years, anchorDate,
+  tier:"milestone"|"numberEgg"|"generic", line, photos }  // photos: up to 5
+```
+
+### Firing rules
+
+- An anchor fires when its **month and day** match today and `years >= 1`
+  (comparisons on the string parts — no `Date` math).
+- **Feb 29** anchors surface on **Mar 1** in non-leap years.
+- A site with both `firstVisit` and `demolishedDate` on the same day produces
+  **two** events; the engine sorts the demolition one first (the card features
+  it and lists the other).
+
+### Copy precedence & selection
+
+`milestone > numberEgg > generic`. Milestones are **never** overridden.
+
+- Milestone years: 1, 5, 10, 15, 20, 25, then every 25. A milestone year with
+  no exact pool (e.g. 125) falls back to the nearest lower milestone pool.
+- Generic selection is **seeded** on `hash(siteId|years)` (FNV-1a, never
+  `Math.random`), so it's stable across reopens and varies by site/year.
+- Generic lines are tone-tagged (`warm|wry|absurd|plain`) and weighted by
+  year: **1–3 skew warm**, later years skew absurd.
+- Past **70 years** on visit anniversaries, `you`/`your` are swapped for the
+  user's name — the pronoun shift is the joke.
+
+### `format(line, ctx)`
+
+Replaces `{location} {years} {date} {user} {building_age}`. Unknown or null
+placeholders are **left intact** (`{bogus}` stays `{bogus}`), never
+`undefined`.
+
+### App bridge
+
+`window.anniversaryEventsToday(dateStr?)` in `index.html` wires the live
+`user` object, the resolved base names, and `annUserName()` into the engine.
+No cards or Record tab yet — that's Phase 3/4.
+
+## Adding copy lines
+
+Edit `anniversary-copy.js` only — it's pure data. Milestone/numberEgg pools
+are arrays of plain strings keyed by year; generic is an array of
+`{t:tone, s:"line"}`. Use the placeholders above. Keep milestone lines
+(especially 50 and 100) weighty — they carry the feature and must never read
+as a joke.
+
+_Phases 3–4 (cards, Record tab) are not yet implemented._

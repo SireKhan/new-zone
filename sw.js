@@ -12,6 +12,8 @@ const SHELL = [
   "./manifest.json",
   "./icon-192.png",
   "./icon-512.png",
+  "./anniversary-copy.js",
+  "./anniversary.js",
   "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css",
   "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"
 ];
