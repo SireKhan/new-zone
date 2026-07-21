@@ -123,7 +123,7 @@
   .annstrip figure.annlast figcaption{background:rgba(150,22,22,.8);font-weight:700}
   .annflavor{padding:10px 24px 6px;font:400 17px/1.35 Georgia,serif;color:#3a4048}
   .anncard.memorial .annflavor{color:#b9bdc2}
-  .annbtn{font:26px/1 system-ui,"Segoe UI Emoji";background:#f3e6b0;border:1px solid #b79b3e;border-radius:14px;padding:9px 18px;margin:8px auto 4px;cursor:pointer;user-select:none;transition:transform .05s;touch-action:manipulation}
+  .annbtn{align-self:stretch;font:26px/1 system-ui,"Segoe UI Emoji";background:#f3e6b0;border:1px solid #b79b3e;border-radius:14px;padding:12px;margin:10px 18px 4px;cursor:pointer;user-select:none;transition:transform .05s;touch-action:manipulation}
   .annbtn:active{transform:scale(.9)}
   .anncard.memorial .annbtn{background:#343941;border-color:#565c64}
   .anncounter{font:10px ui-monospace,Consolas,monospace;color:#5c6672;letter-spacing:.03em;min-height:12px;padding:0 20px}
@@ -1534,12 +1534,15 @@ function flyToSite(siteId){
   if(ll){ map.flyTo(ll, Math.max(map.getZoom(),13), {duration:.8}); if(m) setTimeout(()=>m.openPopup(), 850); }
 }
 
-/* ---- particle layer: one rAF loop, capped, canvas transforms only ---- */
+/* ---- particle layer: one rAF loop, canvas transforms only ---- */
 const annCanvas=document.getElementById("annParticles"), annCtx=annCanvas.getContext("2d");
+/* settled flower petals get baked onto this static layer once and blitted each frame,
+   so they can accumulate without limit and cost nothing per-frame after they land. */
+const settleCanvas=document.createElement("canvas"); let settleCtx=settleCanvas.getContext("2d");
 let particles=[], annRAF=null, pile={};
-const PARTICLE_CAP=420;
+const PARTICLE_CAP=420;   // cap applies to ghosts/confetti (they expire); petals are uncapped
 const reduceMotion = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-function sizeCanvas(){ annCanvas.width=innerWidth; annCanvas.height=innerHeight; }
+function sizeCanvas(){ annCanvas.width=innerWidth; annCanvas.height=innerHeight; settleCanvas.width=innerWidth; settleCanvas.height=innerHeight; }
 /* pre-render emoji to sprite canvases once — drawImage is far cheaper than fillText per frame */
 const ghostSprites={};
 function ghostSprite(ch){
@@ -1551,10 +1554,11 @@ function ghostSprite(ch){
 }
 function ensureLoop(){ if(!annRAF) annRAF=requestAnimationFrame(tickParticles); }
 function startParticles(){ annCanvas.classList.add("on"); sizeCanvas(); ensureLoop(); }
-function stopParticles(){ particles=[]; pile={}; if(annCtx) annCtx.clearRect(0,0,annCanvas.width,annCanvas.height); annCanvas.classList.remove("on"); if(annRAF){ cancelAnimationFrame(annRAF); annRAF=null; } }
+function stopParticles(){ particles=[]; pile={}; if(annCtx) annCtx.clearRect(0,0,annCanvas.width,annCanvas.height); if(settleCtx) settleCtx.clearRect(0,0,settleCanvas.width,settleCanvas.height); annCanvas.classList.remove("on"); if(annRAF){ cancelAnimationFrame(annRAF); annRAF=null; } }
 function cardFloorY(){ const c=document.querySelector(".anncard"); return c ? c.getBoundingClientRect().bottom-6 : innerHeight-40; }
 function tickParticles(){
   annCtx.clearRect(0,0,annCanvas.width,annCanvas.height);
+  annCtx.globalAlpha=1; annCtx.drawImage(settleCanvas,0,0);   // baked-in settled petals
   const floor=cardFloorY();
   for (let i=particles.length-1;i>=0;i--){
     const p=particles[i];
@@ -1569,11 +1573,22 @@ function tickParticles(){
       if (p.y>innerHeight || p.life<=0){ particles.splice(i,1); continue; }
       annCtx.globalAlpha=Math.max(0,p.life); annCtx.save(); annCtx.translate(p.x,p.y); annCtx.rotate(p.rot);
       annCtx.fillStyle=p.color; annCtx.fillRect(-p.size/2,-p.size/2,p.size,p.size*0.6); annCtx.restore();
+    } else if (p.type==="dove"){
+      p.x+=p.vx; p.y+=p.vy; p.vy+=-0.01; p.vx*=1.002;              // flies off, drifting up and away
+      p.wob=(p.wob||0)+0.25;
+      if (p.x<-70 || p.x>innerWidth+70 || p.y<-70){ particles.splice(i,1); continue; }
+      annCtx.globalAlpha=1; const ds=ghostSprite("🕊️"); annCtx.drawImage(ds, p.x-p.size/2, p.y-p.size/2+Math.sin(p.wob)*3, p.size, p.size);
     } else { /* petal */
       if (!p.settled){
         p.vy+=0.05; p.x+=p.vx; p.y+=p.vy; p.rot+=p.vr;
         const bucket=Math.round(p.x/10), restY=floor-(pile[bucket]||0);
-        if (p.y>=restY){ p.y=restY; p.settled=true; pile[bucket]=(pile[bucket]||0)+3; }
+        if (p.y>=restY){
+          p.y=restY; p.settled=true; pile[bucket]=(pile[bucket]||0)+3;
+          // bake the landed petal onto the static layer, then drop it from the live array (unlimited accumulation, no per-frame cost)
+          settleCtx.globalAlpha=1; settleCtx.save(); settleCtx.translate(p.x,p.y); settleCtx.rotate(p.rot);
+          settleCtx.fillStyle=p.color; settleCtx.beginPath(); settleCtx.ellipse(0,0,p.size,p.size*0.55,0,0,7); settleCtx.fill(); settleCtx.restore();
+          particles.splice(i,1); continue;
+        }
       }
       annCtx.globalAlpha=1; annCtx.save(); annCtx.translate(p.x,p.y); annCtx.rotate(p.rot);
       annCtx.fillStyle=p.color; annCtx.beginPath(); annCtx.ellipse(0,0,p.size,p.size*0.55,0,0,7); annCtx.fill(); annCtx.restore();
@@ -1626,11 +1641,17 @@ function spawnGhosts(n, siteId){
 function spawnPetals(n, siteId){
   rec.flowers[siteId]=(rec.flowers[siteId]||0)+n; updateCounter(siteId,"flowers"); saveRec();
   if (reduceMotion) return;
-  const room=PARTICLE_CAP-particles.length; n=Math.min(n, Math.max(0,room));
   const c=document.querySelector(".anncard"); if(!c) return; const r=c.getBoundingClientRect();
   const cols=["#c98a9b","#b56576","#d8a1ad","#a44a5c","#e0b3bd"];
-  for (let i=0;i<n;i++){
+  for (let i=0;i<n;i++){    // no cap — settled petals bake into the static layer, so they pile up freely
     particles.push({type:"petal", x:r.left+Math.random()*r.width, y:r.top+60+Math.random()*30, vx:(Math.random()-0.5)*0.8, vy:0.5+Math.random(), vr:(Math.random()-0.5)*0.2, rot:Math.random()*6, color:cols[i%cols.length], size:5+Math.random()*3, settled:false});
+  }
+  // small chance a dove flies off from the card
+  if (Math.random()<0.05){
+    const doves=1+(Math.random()<0.3?1:0), dir=Math.random()<0.5?-1:1;
+    for (let i=0;i<doves;i++){
+      particles.push({type:"dove", x:r.left+r.width*(0.3+Math.random()*0.4), y:r.top+r.height*0.5, vx:dir*(1.6+Math.random()*1.6), vy:-(1.4+Math.random()*1.4), size:30+Math.random()*10, wob:Math.random()*6});
+    }
   }
   ensureLoop();
 }
@@ -1702,7 +1723,7 @@ function openAnniversaryCard(ev){
   // cake / flowers button
   const btn=el("button","annbtn", memorial?"💐":"🎂");
   btn.onclick=(e)=>{ e.stopPropagation(); cardClicks++; annBlip();
-    if (memorial) spawnPetals(Math.min(2+Math.floor(cardClicks/6),12), ev.siteId);
+    if (memorial) spawnPetals(Math.min(3+Math.floor(cardClicks/4),30), ev.siteId);
     else spawnGhosts(Math.min(1+Math.floor(cardClicks/8),25), ev.siteId);
   };
   card.appendChild(btn);

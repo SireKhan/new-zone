@@ -184,10 +184,16 @@ Layout: a centered column on a **soft-silver** card — big title
 the flavor line, then the button. When a site has **no photo**, the box shows
 `fallback-site.svg` (a utility-pole silhouette) with a **black border**.
 
-Performance: one `requestAnimationFrame` loop, particle cap 420, canvas
-transforms only. Emoji are pre-rendered once to sprite canvases and blitted
-with `drawImage` (never per-frame `fillText`), and photo color sampling is
-cached per image — so spam-clicking holds ~60fps even at the cap.
+The cake/flowers button spans the card width. Flower petals are **uncapped** —
+when a petal lands it's baked once onto a static settle-canvas and dropped from
+the live array, so they accumulate without limit at ~zero per-frame cost. The
+flowers button also has a small (~5%) chance to release a **dove** that flies
+off. (Ghosts/confetti stay capped at 420 since they expire on their own.)
+
+Performance: one `requestAnimationFrame` loop, canvas transforms only. Emoji
+are pre-rendered once to sprite canvases and blitted with `drawImage` (never
+per-frame `fillText`), and photo color sampling is cached per image — so
+spam-clicking holds ~60fps even with a screen full of accumulated petals.
 
 Counters and seen/opened state live in **`urbexAtlasRecord.v1`** (device-local,
 never synced). At most **one** card fires on launch — today's most significant
