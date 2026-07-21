@@ -17,7 +17,7 @@
   header{background:var(--panel);color:var(--panel-ink);padding:12px 18px 10px;border-bottom:3px double #555;display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
   header h1{font:700 18px/1.2 Georgia,serif}
   header .sub{font:10px/1.4 ui-monospace,Consolas,monospace;color:#9aa3ab;margin-top:2px;text-transform:uppercase;letter-spacing:.12em}
-  .hbtns{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+  .hbtns{display:flex;gap:7px;flex-wrap:wrap;align-items:center;justify-content:flex-end;row-gap:6px}
   .btn{font:11px ui-monospace,Consolas,monospace;letter-spacing:.05em;padding:6px 11px;border:1px solid var(--hair);background:#2c343c;color:#dfe3e8;border-radius:3px;cursor:pointer}
   .btn:hover{background:#39434c}
   .btn.primary{background:#1565c0;border-color:#1565c0;color:#fff}
@@ -36,9 +36,12 @@
   .pinDot{width:16px;height:16px;border-radius:50%;border:2px solid #0b3d40;box-shadow:0 1px 3px rgba(0,0,0,.4)}
   .leaflet-marker-draggable .pinDot{border-color:#fff;box-shadow:0 0 0 2px #0b3d40,0 1px 4px rgba(0,0,0,.5);cursor:grab}
   .item{position:relative}
-  .item .del{position:absolute;top:8px;right:10px;width:18px;height:18px;border-radius:50%;border:1px solid #5a646e;background:transparent;color:#8b949c;font:11px/15px monospace;cursor:pointer;display:none}
-  .item:hover .del{display:block}
+  .item .del{position:absolute;top:8px;right:10px;width:18px;height:18px;border-radius:50%;border:1px solid #5a646e;background:transparent;color:#8b949c;font:11px/15px monospace;cursor:pointer}
   .item .del:hover{background:#c62828;border-color:#c62828;color:#fff}
+  .baseDot{border-radius:50%;border:1.5px solid #1d232a;box-shadow:0 1px 2px rgba(0,0,0,.35)}
+  .leaflet-marker-draggable .baseDot{border-color:#fff;box-shadow:0 0 0 2px #1d232a,0 1px 4px rgba(0,0,0,.5);cursor:grab}
+  .chip.notag{border-style:dashed}
+  .chip.editT{color:#7fd4c1;border-color:#1d7a80}
   .item .dist{font:10px ui-monospace,Consolas,monospace;color:#7fd4c1;margin-left:6px}
   .meDot{width:16px;height:16px;border-radius:50%;background:#1a73e8;border:3px solid #fff;box-shadow:0 0 0 2px rgba(26,115,232,.35),0 1px 4px rgba(0,0,0,.4)}
   .tnum{width:22px;height:22px;border-radius:50%;background:#1565c0;color:#fff;font:11px/22px ui-monospace,Consolas,monospace;text-align:center;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.45)}
@@ -215,13 +218,13 @@ const GH_KEY = "urbexAtlasGH.v1";
 
 /* ---------- state & persistence ---------- */
 let storageOK = true;
-let user = { version:1, pins:[], extras:{}, hiddenBase:[] };
+let user = { version:1, pins:[], extras:{}, hiddenBase:[], baseMoves:{} };
 let gh = { owner:"", repo:"", branch:"main", token:"" };
 
 function loadLocal(){
   try {
     const raw = localStorage.getItem(STORE_KEY);
-    if (raw) user = Object.assign({version:1,pins:[],extras:{},hiddenBase:[]}, JSON.parse(raw));
+    if (raw) user = Object.assign({version:1,pins:[],extras:{},hiddenBase:[],baseMoves:{}}, JSON.parse(raw));
     const g = localStorage.getItem(GH_KEY);
     if (g) gh = Object.assign(gh, JSON.parse(g));
   } catch(e){ storageOK = false; }
@@ -249,6 +252,7 @@ function mergeUser(incoming){
   user.pins = Object.values(byId);
   user.extras = Object.assign({}, user.extras, incoming.extras||{});
   user.hiddenBase = [...new Set([...(user.hiddenBase||[]), ...(incoming.hiddenBase||[])])];
+  user.baseMoves = Object.assign({}, user.baseMoves, incoming.baseMoves||{});
 }
 
 /* ---------- GitHub API ---------- */
@@ -345,20 +349,36 @@ function fmtDur(min){
   return h ? h+"h "+(m<10?"0":"")+m+"m" : m+" min";
 }
 
+let dragEnabled = false;
+try { dragEnabled = localStorage.getItem("urbexAtlasDrag.v1") === "1"; } catch(e){}
+function dotIcon(col, size, cls){
+  return L.divIcon({className:"", html:'<div class="'+cls+'" style="background:'+col+';width:'+size+'px;height:'+size+'px"></div>', iconSize:[size,size], iconAnchor:[size/2,size/2]});
+}
+function pinIcon(col){ return dotIcon(col, 16, "pinDot"); }
+function baseIcon(s){ return dotIcon(CATS[s.c].color, s.c==="home"?19:14, "baseDot"); }
 const baseMarkers = {};
 BASE.forEach(s=>{
-  const m = L.circleMarker([s.lat,s.lng],{radius:s.c==="home"?9:6.5,color:"#1d232a",weight:1.2,fillColor:CATS[s.c].color,fillOpacity:.92});
+  const m = L.marker([s.lat,s.lng],{icon:baseIcon(s), draggable:dragEnabled});
   m.on("popupopen", ()=> m.setPopupContent(basePopup(s)));
   m.bindPopup("…");
   m.on("click", ()=>{ if(tripMode){ setTimeout(()=>m.closePopup(),0); toggleTripStop("base",s.id); } });
+  m.on("dragend", ()=>{
+    const ll = m.getLatLng();
+    s.lat = ll.lat; s.lng = ll.lng;
+    user.baseMoves[s.id] = [ll.lat, ll.lng];
+    save(); render();
+    toast("Moved “"+s.n+"” to "+ll.lat.toFixed(4)+", "+ll.lng.toFixed(4));
+  });
   baseMarkers[s.id]=m;
 });
-let pinMarkers = {};
-let dragEnabled = false;
-try { dragEnabled = localStorage.getItem("urbexAtlasDrag.v1") === "1"; } catch(e){}
-function pinIcon(col){
-  return L.divIcon({className:"", html:'<div class="pinDot" style="background:'+col+'"></div>', iconSize:[16,16], iconAnchor:[8,8]});
+function applyBaseMoves(){
+  for (const [id, ll] of Object.entries(user.baseMoves||{})){
+    const s = BASE_BY_ID[id]; if (!s || !Array.isArray(ll)) continue;
+    s.lat = ll[0]; s.lng = ll[1];
+    if (baseMarkers[id]) baseMarkers[id].setLatLng(ll);
+  }
 }
+let pinMarkers = {};
 function rebuildPinMarkers(){
   Object.values(pinMarkers).forEach(m=>map.removeLayer(m));
   pinMarkers = {};
@@ -471,15 +491,47 @@ function allTags(){
   Object.values(user.extras).forEach(x=>(x.tags||[]).forEach(y=>t.add(y)));
   return [...t].sort();
 }
+const NO_TAG = "no tag"; // virtual — parseTags collapses spaces, so no real tag can collide with it
+let editTags = false;
+function untaggedPinExists(){ return user.pins.some(p=>!(p.tags||[]).length); }
 function renderTagChips(){
   const w = document.getElementById("tagFilters"); w.innerHTML="";
   const tags = allTags();
-  if(!tags.length){ w.innerHTML='<span style="font:10px monospace;color:#6f7982">none yet — add tags to pins</span>'; return; }
+  [...activeTags].forEach(t=>{ if(t!==NO_TAG && !tags.includes(t)) activeTags.delete(t); });
+  if (!untaggedPinExists()) activeTags.delete(NO_TAG);
+  if (untaggedPinExists()){
+    const c = el("span","chip tag notag"+(activeTags.has(NO_TAG)?" on":""), "#"+NO_TAG);
+    c.title = "Your pins that have no tags";
+    c.onclick=()=>{ activeTags.has(NO_TAG)?activeTags.delete(NO_TAG):activeTags.add(NO_TAG); c.classList.toggle("on"); render(); };
+    w.appendChild(c);
+  }
+  if (!tags.length){
+    if (!untaggedPinExists()) w.innerHTML='<span style="font:10px monospace;color:#6f7982">none yet — add tags to pins</span>';
+    return;
+  }
   tags.forEach(t=>{
-    const c = el("span","chip tag"+(activeTags.has(t)?" on":""), "#"+t);
-    c.onclick=()=>{ activeTags.has(t)?activeTags.delete(t):activeTags.add(t); c.classList.toggle("on"); render(); };
+    const c = el("span","chip tag"+(activeTags.has(t)?" on":""), (editTags?"✎ #":"#")+t);
+    c.onclick=()=>{
+      if (editTags){ editTag(t); return; }
+      activeTags.has(t)?activeTags.delete(t):activeTags.add(t); c.classList.toggle("on"); render();
+    };
     w.appendChild(c);
   });
+  const e = el("span","chip editT", editTags ? "✓ done" : "✎ edit tags");
+  e.onclick=()=>{ editTags=!editTags; renderTagChips(); if(editTags) toast("Tag edit mode — tap a tag to rename it everywhere, or clear the name to delete it."); };
+  w.appendChild(e);
+}
+function editTag(old){
+  const raw = prompt('Tag "#'+old+'" — edit the name to rename it on every pin, or clear the box to delete it from every pin.', old);
+  if (raw===null) return;
+  const nu = parseTags(raw)[0] || null;
+  if (nu===old) return;
+  const fix = list => { const t=(list||[]).filter(x=>x!==old); if (nu && !t.includes(nu)) t.push(nu); return t; };
+  user.pins.forEach(p=>{ if ((p.tags||[]).includes(old)) p.tags=fix(p.tags); });
+  Object.values(user.extras).forEach(x=>{ if ((x.tags||[]).includes(old)) x.tags=fix(x.tags); });
+  if (activeTags.has(old)){ activeTags.delete(old); if (nu) activeTags.add(nu); }
+  save(); refreshAll();
+  toast(nu ? "Renamed #"+old+" → #"+nu+" on every pin." : "Deleted #"+old+" from every pin.");
 }
 function entryTags(kind, obj){
   return kind==="pin" ? (obj.tags||[]) : ((user.extras[obj.id]||{}).tags||[]);
@@ -494,7 +546,7 @@ function visible(kind, obj){
   if (!activeCats.has(cat)) return false;
   if (activeTags.size){
     const tags = entryTags(kind,obj);
-    if (![...activeTags].some(t=>tags.includes(t))) return false;
+    if (![...activeTags].some(t=> t===NO_TAG ? (kind==="pin" && !tags.length) : tags.includes(t))) return false;
   }
   if (query && !searchable(kind,obj).toLowerCase().includes(query)) return false;
   return true;
@@ -544,14 +596,14 @@ function render(){
   rb.style.display = user.hiddenBase.length ? "" : "none";
   rb.textContent = "Restore "+user.hiddenBase.length+" removed pin"+(user.hiddenBase.length===1?"":"s");
 }
-function refreshAll(){ rebuildPinMarkers(); renderTagChips(); render(); updateStorageBar(); }
+function refreshAll(){ applyBaseMoves(); rebuildPinMarkers(); renderTagChips(); render(); updateStorageBar(); }
 
 /* ---------- drag toggle ---------- */
 const dragBtn=document.getElementById("dragBtn");
 function applyDragState(){
   dragBtn.textContent = "Drag pins: " + (dragEnabled ? "on" : "off");
   dragBtn.classList.toggle("gh", dragEnabled);
-  Object.values(pinMarkers).forEach(m=>{
+  Object.values(pinMarkers).concat(Object.values(baseMarkers)).forEach(m=>{
     if (!m.dragging) return;
     dragEnabled ? m.dragging.enable() : m.dragging.disable();
   });
@@ -560,7 +612,7 @@ dragBtn.onclick=()=>{
   dragEnabled=!dragEnabled;
   try { localStorage.setItem("urbexAtlasDrag.v1", dragEnabled ? "1" : "0"); } catch(e){}
   applyDragState();
-  toast(dragEnabled ? "Drag mode on — drag your pins to reposition them (saved automatically)." : "Drag mode off — pins are locked.");
+  toast(dragEnabled ? "Pins unlocked — drag any pin to reposition it (saved automatically)." : "Pins locked in place.");
 };
 applyDragState();
 
