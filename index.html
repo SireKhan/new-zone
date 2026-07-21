@@ -1559,9 +1559,11 @@ function tickParticles(){
   for (let i=particles.length-1;i>=0;i--){
     const p=particles[i];
     if (p.type==="ghost"){
-      p.y+=p.vy; p.x+=p.vx + (p.hat?Math.sin(p.y*0.04)*0.8:0); p.life-=0.008;
-      if (p.life<=0 || p.y<-40){ particles.splice(i,1); continue; }
-      annCtx.globalAlpha=Math.max(0,Math.min(1,p.life)); const sp=ghostSprite(p.char); annCtx.drawImage(sp, p.x-p.size/2, p.y-p.size/2, p.size, p.size);
+      p.y+=p.vy; p.x+=p.vx + (p.hat?Math.sin(p.y*0.04)*0.8:0);
+      const progress=(innerHeight - p.y)/innerHeight;              // 0 at the bottom, 1 at the top
+      if (progress>=0.85){ particles.splice(i,1); continue; }      // gone once it's risen 85% of the screen
+      annCtx.globalAlpha=Math.max(0,Math.min(1,(0.85-progress)/0.15)); // fade over the last stretch up to 85%
+      const sp=ghostSprite(p.char); annCtx.drawImage(sp, p.x-p.size/2, p.y-p.size/2, p.size, p.size);
     } else if (p.type==="confetti"){
       p.vy+=0.08; p.x+=p.vx; p.y+=p.vy; p.rot+=p.vr; p.life-=0.01;
       if (p.y>innerHeight || p.life<=0){ particles.splice(i,1); continue; }
@@ -1604,16 +1606,20 @@ function spawnGhosts(n, siteId){
   rec.ghosts[siteId]=(rec.ghosts[siteId]||0)+n; updateCounter(siteId,"ghosts"); saveRec();
   if (reduceMotion) return;
   const room=PARTICLE_CAP-particles.length; n=Math.min(n, Math.max(0,room));
-  const b=document.querySelector(".anncard .annbtn"); if(!b) return; const r=b.getBoundingClientRect();
-  const ox=r.left+r.width/2, oy=r.top+r.height/2;
-  const cols=sampleColors(currentStripImg());
+  // ghosts rise from the bottom of the screen, across the full width
   for (let i=0;i<n;i++){
     const hat=Math.random()<0.02;
-    particles.push({type:"ghost", x:ox+(Math.random()-0.5)*r.width, y:oy, vy:-(0.8+Math.random()*1.5), vx:(Math.random()-0.5)*(hat?2.4:0.7), life:1, size:18+Math.random()*14, char:hat?(Math.random()<0.5?"🎈":"🥳"):"👻", hat});
+    particles.push({type:"ghost", x:Math.random()*innerWidth, y:innerHeight+10+Math.random()*30, vy:-(2.6+Math.random()*2.6), vx:(Math.random()-0.5)*(hat?2.4:0.7), size:20+Math.random()*16, char:hat?(Math.random()<0.5?"🎈":"🥳"):"👻", hat});
   }
-  const cn=Math.min(n*3, PARTICLE_CAP-particles.length);
-  for (let i=0;i<cn;i++){
-    particles.push({type:"confetti", x:ox+(Math.random()-0.5)*60, y:oy, vx:(Math.random()-0.5)*5.5, vy:-(2.5+Math.random()*4), vr:(Math.random()-0.5)*0.3, rot:Math.random()*6, color:cols[i%cols.length], size:5+Math.random()*4, life:1});
+  // confetti bursts from the cake button
+  const b=document.querySelector(".anncard .annbtn");
+  if (b){
+    const r=b.getBoundingClientRect(), ox=r.left+r.width/2, oy=r.top+r.height/2;
+    const cols=sampleColors(currentStripImg());
+    const cn=Math.min(n*3, PARTICLE_CAP-particles.length);
+    for (let i=0;i<cn;i++){
+      particles.push({type:"confetti", x:ox+(Math.random()-0.5)*60, y:oy, vx:(Math.random()-0.5)*5.5, vy:-(2.5+Math.random()*4), vr:(Math.random()-0.5)*0.3, rot:Math.random()*6, color:cols[i%cols.length], size:5+Math.random()*4, life:1});
+    }
   }
   ensureLoop();
 }
@@ -1778,7 +1784,12 @@ function renderRecord(){
   updateAnnBadge();
 }
 /* ---- achievements ---- */
-const ACH_TIERS=[1,5,10,25,50,75,100];
+const ACH_TIERS={
+  visited: [1,5,10,25,50,75,100],
+  photos:  [1,50,100,250,500,750,1000,1500,2000],
+  big:     [1,50,250,1000,5000,25000,100000,500000,1000000]   // ghosts & flowers
+};
+function fmtTier(n){ return n>=1000000 ? (n/1000000)+"M" : n>=1000 ? (n/1000)+"K" : ""+n; }
 function sumCounts(o){ return Object.values(o||{}).reduce((a,b)=>a+(b||0),0); }
 function countVisited(){
   let n=0;
@@ -1794,23 +1805,23 @@ function countPhotos(){
 }
 function renderAchievements(body){
   const cats=[
-    {icon:"📍", label:"Places visited", n:countVisited(), unit:"tagged visited"},
-    {icon:"📷", label:"Pictures taken", n:countPhotos(), unit:"photos added"},
-    {icon:"👻", label:"Ghosts released", n:sumCounts(rec.ghosts), unit:"ghosts"},
-    {icon:"💐", label:"Flowers left", n:sumCounts(rec.flowers), unit:"flowers"}
+    {icon:"📍", label:"Places visited", n:countVisited(), unit:"tagged visited", tiers:ACH_TIERS.visited},
+    {icon:"📷", label:"Pictures taken", n:countPhotos(), unit:"photos added", tiers:ACH_TIERS.photos},
+    {icon:"👻", label:"Ghosts released", n:sumCounts(rec.ghosts), unit:"ghosts", tiers:ACH_TIERS.big},
+    {icon:"💐", label:"Flowers left", n:sumCounts(rec.flowers), unit:"flowers", tiers:ACH_TIERS.big}
   ];
   cats.forEach(c=>{
     const sec=el("div","achcat"), head=el("div","ach-head");
     head.appendChild(el("span","ach-ico",c.icon));
     const ht=el("div","ach-htext");
     ht.appendChild(el("div","ach-label",c.label));
-    const next=ACH_TIERS.find(t=>c.n<t);
-    ht.appendChild(el("div","ach-sub", c.n.toLocaleString()+" "+c.unit+(next?(" · "+(next-c.n).toLocaleString()+" more to reach "+next):" · every badge unlocked!")));
+    const next=c.tiers.find(t=>c.n<t);
+    ht.appendChild(el("div","ach-sub", c.n.toLocaleString()+" "+c.unit+(next?(" · "+(next-c.n).toLocaleString()+" more to reach "+next.toLocaleString()):" · every badge unlocked!")));
     head.appendChild(ht);
     head.appendChild(el("div","ach-count", c.n.toLocaleString()));
     sec.appendChild(head);
     const tiers=el("div","ach-tiers");
-    ACH_TIERS.forEach(t=>{ tiers.appendChild(el("div","ach-tier"+(c.n>=t?" on":""), (c.n>=t?"✓ ":"")+t)); });
+    c.tiers.forEach(t=>{ tiers.appendChild(el("div","ach-tier"+(c.n>=t?" on":""), (c.n>=t?"✓ ":"")+fmtTier(t))); });
     sec.appendChild(tiers);
     body.appendChild(sec);
   });
