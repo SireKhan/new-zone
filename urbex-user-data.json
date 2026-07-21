@@ -6,7 +6,7 @@
    "n": "Beury Building",
    "lat": 40.00994341898705,
    "lng": -75.15058547258378,
-   "c": "home",
+   "c": "caution",
    "tags": [
     "visited",
     "bank"
@@ -31,5 +31,31 @@
  ],
  "extras": {},
  "hiddenBase": [],
- "baseMoves": {}
+ "baseMoves": {},
+ "cats": {
+  "legal": {
+   "label": "Legal now",
+   "color": "#2e7d32"
+  },
+  "ask": {
+   "label": "Owner-ask",
+   "color": "#1565c0"
+  },
+  "caution": {
+   "label": "Caution / mixed",
+   "color": "#ef6c00"
+  },
+  "avoid": {
+   "label": "Avoid entirely",
+   "color": "#c62828"
+  },
+  "gone": {
+   "label": "Gone / repurposed",
+   "color": "#757575"
+  },
+  "neutral": {
+   "label": "Neutral",
+   "color": "#9aa3ab"
+  }
+ }
 }
