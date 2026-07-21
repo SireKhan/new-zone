@@ -1,5 +1,5 @@
 {
- "version": 1,
+ "version": 2,
  "pins": [
   {
    "id": "p1784571174265",
@@ -13,8 +13,16 @@
    ],
    "d": "",
    "photos": [
-    "photos/p1784571174265-1784593455585-6.jpg"
-   ]
+    {
+     "src": "photos/p1784571174265-1784593455585-6.jpg",
+     "date": null
+    }
+   ],
+   "firstVisit": null,
+   "lastVisit": null,
+   "demolishedDate": null,
+   "demolitionNoted": null,
+   "built": null
   },
   {
    "id": "p1784596200130",
@@ -26,13 +34,56 @@
     "poi"
    ],
    "d": "",
-   "photos": []
+   "photos": [],
+   "firstVisit": null,
+   "lastVisit": null,
+   "demolishedDate": null,
+   "demolitionNoted": null,
+   "built": null
+  },
+  {
+   "id": "p1784645664715",
+   "n": "City Branch Tunnel",
+   "lat": 39.96892021343615,
+   "lng": -75.18196731805803,
+   "c": "caution",
+   "r": "Eastern PA",
+   "tags": [
+    "tunnel",
+    "visited"
+   ],
+   "d": "",
+   "photos": [],
+   "firstVisit": "2025-08-02",
+   "lastVisit": null,
+   "demolishedDate": null,
+   "demolitionNoted": null,
+   "built": null
   }
  ],
- "extras": {},
+ "extras": {
+  "b1": {
+   "note": "",
+   "tags": [
+    "visited"
+   ],
+   "photos": [],
+   "firstVisit": null,
+   "lastVisit": null,
+   "demolishedDate": null,
+   "demolitionNoted": null,
+   "built": null
+  }
+ },
  "hiddenBase": [],
  "baseMoves": {},
- "baseEdits": {},
+ "baseEdits": {
+  "b98": {
+   "n": "Suffolk County Sanatorium (Selden)",
+   "c": "gone",
+   "d": "YOUR SITE — family property adjoining SCCC Ammerman. Tunnel system with asbestos lagging; deep exploration ruled out, pursuing archives instead."
+  }
+ },
  "cats": {
   "legal": {
    "label": "Legal now",
