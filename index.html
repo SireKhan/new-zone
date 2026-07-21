@@ -123,14 +123,17 @@
     header .sub{white-space:normal}
     .hbtns{width:100%;justify-content:flex-start}
     #app{flex-direction:column}
-    #side{width:100%;min-width:0;height:50%;order:2;display:block;overflow-y:auto;-webkit-overflow-scrolling:touch;border-right:none;border-top:1px solid var(--hair)}
-    #list{overflow:visible}
+    /* keep #side a normal (non-scrolling) flex column so the fixed sheet is not
+       nested in a scroll container — that combination breaks touch on iOS Safari.
+       The list itself is the scroller instead. */
+    #side{width:100%;min-width:0;height:50%;order:2;border-right:none;border-top:1px solid var(--hair)}
+    #list{min-height:0;-webkit-overflow-scrolling:touch}
     #map{order:1;flex:1 1 0;min-height:0}
 
     #filterTab{display:flex;align-items:center;gap:9px;width:100%;padding:12px 14px;
       background:#2c343c;color:#e8e4da;border:none;border-bottom:1px solid var(--hair);
       font:11px ui-monospace,Consolas,monospace;letter-spacing:.06em;text-transform:uppercase;
-      cursor:pointer;position:sticky;top:0;z-index:5}
+      cursor:pointer;flex:none}
     #filterTabDot{width:7px;height:7px;border-radius:50%;background:transparent;flex:none}
     #filterTab.filtered #filterTabDot{background:#1a73e8}
     #filterTabCount{margin-left:auto;color:#8b949c;text-transform:none;letter-spacing:.03em}
