@@ -95,6 +95,12 @@
   .pbtn{font:10px ui-monospace,Consolas,monospace;padding:4px 8px;border:1px solid #999;background:#f4f2ec;border-radius:3px;cursor:pointer}
   .pbtn:hover{background:#e8e4da}
   .pbtn.danger{color:#c62828;border-color:#c62828}
+  .pbtn.visited{background:#d9b443;border-color:#9a7d1c;color:#3a2f08;font-weight:700}
+  .pbtn.visited:hover{background:#c9a536}
+  .leaflet-popup.visited-popup .leaflet-popup-content-wrapper{background:#e7c65a;color:#2a2410}
+  .leaflet-popup.visited-popup .leaflet-popup-tip{background:#e7c65a}
+  .leaflet-popup.visited-popup .pp-note{color:#3a3320}
+  .leaflet-popup.visited-popup .pbtn{background:#f3e6b0;border-color:#b79b3e}
   .veil{position:fixed;inset:0;background:rgba(15,18,22,.62);display:none;align-items:center;justify-content:center;z-index:2000;padding:16px}
   .veil.open{display:flex}
   .modal{background:var(--paper);width:100%;max-width:430px;max-height:92vh;overflow-y:auto;border-radius:5px;padding:18px 20px;border-top:4px solid #155e63}
@@ -108,6 +114,14 @@
   .mthumbs .ph{position:relative}
   .mthumbs img{width:82px;height:62px;object-fit:cover;border-radius:3px;border:1px solid #b9b4a8}
   .mthumbs .rm{position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:#c62828;color:#fff;border:none;font:11px/16px monospace;cursor:pointer}
+  .mthumbs .ph{display:flex;flex-direction:column;gap:3px}
+  .mthumbs .phdate{width:82px;font:10px ui-monospace,Consolas,monospace;padding:2px 3px;border:1px solid #b9b4a8;border-radius:3px;background:#fff;color:var(--ink)}
+  .drow{display:flex;gap:8px;margin-top:5px}
+  .dcell{flex:1;min-width:0}
+  .dsub{display:block;font:9px ui-monospace,Consolas,monospace;color:#777;letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px}
+  #mDatesRow input[type=date],#mDatesRow input[type=text],#mDemolished{width:100%}
+  .dhint{font:11px Georgia,serif;color:#5a5648;margin-top:7px}
+  .dhint .linkish{background:none;border:none;color:#155e63;text-decoration:underline;cursor:pointer;font:11px Georgia,serif;padding:0}
   .mrow{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
   #lightbox{position:fixed;inset:0;background:rgba(10,12,14,.9);display:none;align-items:center;justify-content:center;z-index:3000;cursor:zoom-out}
   #lightbox.open{display:flex}
@@ -217,12 +231,25 @@
   <div id="mNameRow"><label>Name</label><input type="text" id="mName" placeholder="e.g. Mystery powerhouse off Rt 25"></div>
   <div id="mRegionRow"><label>Location</label><input type="text" id="mRegion" placeholder="e.g. NJ, NYC, Hudson Valley"></div>
   <div id="mCatRow"><label>Status</label><select id="mCat"></select></div>
+  <div id="mDemolishedRow"><label>Demolished date <span style="text-transform:none;letter-spacing:0">(sets status to “gone”)</span></label><input type="date" id="mDemolished"></div>
   <div id="mTagsRow">
     <label>Tags <span style="text-transform:none;letter-spacing:0">(comma-separated — used by the tag filter)</span></label>
     <input type="text" id="mTags" placeholder="visited, tunnel-system, email-sent">
   </div>
   <label id="mNoteLabel">Notes</label>
   <textarea id="mNote" placeholder="Access status, owner contact, hazards, shot list&hellip;"></textarea>
+  <div id="mDatesRow">
+    <label>Visit &amp; building dates <span style="text-transform:none;letter-spacing:0">(for anniversaries)</span></label>
+    <div class="drow">
+      <div class="dcell"><span class="dsub">First visit</span><input type="date" id="mFirstVisit"></div>
+      <div class="dcell"><span class="dsub">Last visit</span><input type="date" id="mLastVisit"></div>
+    </div>
+    <div class="drow">
+      <div class="dcell"><span class="dsub">Built</span><input type="text" id="mBuilt" placeholder="YYYY or YYYY-MM-DD"></div>
+      <div class="dcell"><span class="dsub">Demolition noted</span><input type="date" id="mDemolitionNoted"></div>
+    </div>
+    <div class="dhint" id="mFirstVisitHint"></div>
+  </div>
   <div id="mPhotoRow">
     <label>Photos</label>
     <input type="file" id="mPhotos" accept="image/*" multiple>
@@ -305,16 +332,38 @@ const GH_KEY = "urbexAtlasGH.v1";
 
 /* ---------- state & persistence ---------- */
 let storageOK = true;
-let user = { version:1, pins:[], extras:{}, hiddenBase:[], baseMoves:{}, baseEdits:{}, cats:{} };
+let user = { version:2, pins:[], extras:{}, hiddenBase:[], baseMoves:{}, baseEdits:{}, cats:{} };
 let gh = { owner:"", repo:"", branch:"main", token:"" };
+
+/* ---------- anniversary data model (Phase 1) ---------- */
+/* Dates are always plain "YYYY-MM-DD" strings (never Date objects) to avoid timezone drift. */
+const DATE_FIELDS = ["firstVisit","lastVisit","demolishedDate","demolitionNoted","built"];
+function photoSrc(ph){ return typeof ph==="string" ? ph : ((ph && ph.src) || ""); }
+function photoDate(ph){ return (ph && typeof ph==="object") ? (ph.date||null) : null; }
+function pad2(n){ return String(n).padStart(2,"0"); }
+function ymd(d){ return d ? d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate()) : null; }
+function todayYMD(){ return ymd(new Date()); }
+/* Migrate a site (pin or extras entry) in place: add null date fields, turn bare photo
+   strings into {src,date}. Idempotent — safe to run on already-migrated / synced data. */
+function normalizeSite(o){
+  if (!o || typeof o!=="object") return;
+  for (const k of DATE_FIELDS) if (!(k in o)) o[k]=null;
+  if (Array.isArray(o.photos)) o.photos = o.photos.map(ph => typeof ph==="string" ? {src:ph, date:null} : ph);
+}
+function normalizeUser(){
+  (user.pins||[]).forEach(normalizeSite);
+  Object.values(user.extras||{}).forEach(normalizeSite);
+  if (!(user.version>=2)) user.version = 2;
+}
 
 function loadLocal(){
   try {
     const raw = localStorage.getItem(STORE_KEY);
-    if (raw) user = Object.assign({version:1,pins:[],extras:{},hiddenBase:[],baseMoves:{},baseEdits:{},cats:{}}, JSON.parse(raw));
+    if (raw) user = Object.assign({version:2,pins:[],extras:{},hiddenBase:[],baseMoves:{},baseEdits:{},cats:{}}, JSON.parse(raw));
     const g = localStorage.getItem(GH_KEY);
     if (g) gh = Object.assign(gh, JSON.parse(g));
   } catch(e){ storageOK = false; }
+  normalizeUser();
 }
 function save(){
   try { localStorage.setItem(STORE_KEY, JSON.stringify(user)); storageOK = true; }
@@ -332,16 +381,27 @@ function updateStorageBar(){
     ? ("local: " + kb + " KB" + (ghConfigured() ? " · repo: " + gh.owner + "/" + gh.repo : ""))
     : "not persisting here — sync or export";
 }
+/* Keep locally-set anniversary dates when the incoming copy of the same site lacks them,
+   so a GitHub pull from an older/other device can't wipe dates you set here. */
+function preserveDates(incomingObj, localObj){
+  if (!incomingObj || !localObj) return;
+  for (const k of DATE_FIELDS){
+    if ((incomingObj[k]==null) && localObj[k]!=null) incomingObj[k]=localObj[k];
+  }
+}
 function mergeUser(incoming){
   if (!incoming || typeof incoming !== "object") return;
   const byId = Object.fromEntries(user.pins.map(p=>[p.id,p]));
-  (incoming.pins||[]).forEach(p=>{ byId[p.id] = p; });
+  (incoming.pins||[]).forEach(p=>{ if(byId[p.id]) preserveDates(p, byId[p.id]); byId[p.id] = p; });
   user.pins = Object.values(byId);
-  user.extras = Object.assign({}, user.extras, incoming.extras||{});
+  const mergedExtras = Object.assign({}, user.extras);
+  for (const [k,v] of Object.entries(incoming.extras||{})){ if(mergedExtras[k]) preserveDates(v, mergedExtras[k]); mergedExtras[k]=v; }
+  user.extras = mergedExtras;
   user.hiddenBase = [...new Set([...(user.hiddenBase||[]), ...(incoming.hiddenBase||[])])];
   user.baseMoves = Object.assign({}, user.baseMoves, incoming.baseMoves||{});
   user.baseEdits = Object.assign({}, user.baseEdits, incoming.baseEdits||{});
   if (incoming.cats && Object.keys(incoming.cats).length) user.cats = Object.assign({}, user.cats, incoming.cats);
+  normalizeUser();
 }
 
 /* ---------- GitHub API ---------- */
@@ -381,11 +441,15 @@ let photoSeq = 0;
 async function uploadPhotoList(list, idbase){
   let uploaded = 0;
   for (let i=0; i<list.length; i++){
-    if (list[i].startsWith("data:")){
-      const b64 = list[i].split(",")[1];
+    const ph = list[i];
+    const src = photoSrc(ph);
+    if (src.startsWith("data:")){
+      const b64 = src.split(",")[1];
       const path = "photos/"+idbase+"-"+Date.now()+"-"+(photoSeq++)+".jpg";
       await ghPut(path, b64, "Add photo "+path);
-      list[i] = path; uploaded++;
+      if (typeof ph==="string") list[i] = {src:path, date:null};   // repo path replaces the data URL, date preserved
+      else ph.src = path;
+      uploaded++;
     }
   }
   return uploaded;
@@ -448,7 +512,7 @@ function baseIcon(s){ return dotIcon(catOf(s.c).color, s.c==="home"?19:14, "base
 const baseMarkers = {};
 BASE.forEach(s=>{
   const m = L.marker([s.lat,s.lng],{icon:baseIcon(s), draggable:dragEnabled});
-  m.on("popupopen", ()=> m.setPopupContent(basePopup(s)));
+  m.on("popupopen", ()=>{ m.setPopupContent(basePopup(s)); applyPopupGold(m, isVisitedBase(s.id)); });
   m.bindPopup("…");
   m.on("click", ()=>{ if(tripMode){ setTimeout(()=>m.closePopup(),0); toggleTripStop("base",s.id); } });
   m.on("dragend", ()=>{
@@ -486,7 +550,7 @@ function rebuildPinMarkers(){
   user.pins.forEach(p=>{
     const col = catOf(p.c).color;
     const m = L.marker([p.lat,p.lng],{icon:pinIcon(col), draggable:dragEnabled});
-    m.on("popupopen", ()=> m.setPopupContent(pinPopup(p)));
+    m.on("popupopen", ()=>{ m.setPopupContent(pinPopup(p)); applyPopupGold(m, isVisitedPin(p)); });
     m.bindPopup("…");
     m.on("dragend", ()=>{
       const ll = m.getLatLng();
@@ -504,8 +568,10 @@ function el(tag, cls, txt){ const e=document.createElement(tag); if(cls)e.classN
 function photoStrip(parent, photos){
   if(!photos || !photos.length) return;
   const w = el("div","pp-photos");
-  photos.forEach(src=>{
+  photos.forEach(ph=>{
+    const src = photoSrc(ph);
     const img = document.createElement("img"); img.src=resolvePhoto(src);
+    if (photoDate(ph)) img.title = photoDate(ph);
     img.onclick = ()=>{ document.getElementById("lightboxImg").src=resolvePhoto(src); document.getElementById("lightbox").classList.add("open"); };
     w.appendChild(img);
   });
@@ -516,6 +582,39 @@ function tagStrip(parent, tags){
   const w = el("div","pp-tags");
   tags.forEach(t=> w.appendChild(el("span",null,"#"+t)));
   parent.appendChild(w);
+}
+/* ---------- "visited" tag: quick toggle + gold popup ---------- */
+const VISITED_TAG = "visited";
+function isVisitedPin(p){ return (p.tags||[]).includes(VISITED_TAG); }
+function isVisitedBase(id){ const x=user.extras[id]; return !!(x && (x.tags||[]).includes(VISITED_TAG)); }
+function ensureExtra(id){
+  const x = user.extras[id] || (user.extras[id] = {note:"",tags:[],photos:[],firstVisit:null,lastVisit:null,demolishedDate:null,demolitionNoted:null,built:null});
+  if (!Array.isArray(x.tags)) x.tags=[];
+  return x;
+}
+function applyPopupGold(m, visited){
+  const p = m && m.getPopup && m.getPopup();
+  const elem = p && p.getElement && p.getElement();
+  if (elem) elem.classList.toggle("visited-popup", !!visited);
+}
+function toggleVisitedPin(p){
+  p.tags = p.tags || [];
+  const i = p.tags.indexOf(VISITED_TAG);
+  if (i>=0) p.tags.splice(i,1); else p.tags.push(VISITED_TAG);
+  save(); renderTagChips(); render();
+  const m = pinMarkers[p.id];
+  if (m){ m.setPopupContent(pinPopup(p)); applyPopupGold(m, isVisitedPin(p)); }
+  toast(isVisitedPin(p)?"Marked visited ✓":"Removed visited tag");
+}
+function toggleVisitedBase(id){
+  const x = ensureExtra(id);
+  const i = x.tags.indexOf(VISITED_TAG);
+  if (i>=0) x.tags.splice(i,1); else x.tags.push(VISITED_TAG);
+  if (!x.tags.length && !x.note && !(x.photos&&x.photos.length) && DATE_FIELDS.every(k=>x[k]==null)) delete user.extras[id];
+  save(); renderTagChips(); render();
+  const s = BASE_BY_ID[id], m = baseMarkers[id];
+  if (m){ m.setPopupContent(basePopup(s)); applyPopupGold(m, isVisitedBase(id)); }
+  toast(isVisitedBase(id)?"Marked visited ✓":"Removed visited tag");
 }
 function basePopup(s){
   const x = user.extras[s.id] || {};
@@ -533,6 +632,9 @@ function basePopup(s){
   }
   root.appendChild(el("div","pp-region", s.r+" · "+s.lat.toFixed(4)+", "+s.lng.toFixed(4)));
   const act = el("div","pp-actions");
+  const vb = el("button","pbtn"+(isVisitedBase(s.id)?" visited":""), isVisitedBase(s.id)?"✓ Visited":"Mark visited");
+  vb.onclick = ()=> toggleVisitedBase(s.id);
+  act.appendChild(vb);
   const ed = el("button","pbtn","Edit location");
   ed.onclick = ()=> openModal({mode:"editBase", baseId:s.id});
   act.appendChild(ed);
@@ -552,6 +654,9 @@ function pinPopup(p){
   photoStrip(root, p.photos);
   root.appendChild(el("div","pp-region", (p.r?p.r+" · ":"")+p.lat.toFixed(4)+", "+p.lng.toFixed(4)));
   const act = el("div","pp-actions");
+  const vp = el("button","pbtn"+(isVisitedPin(p)?" visited":""), isVisitedPin(p)?"✓ Visited":"Mark visited");
+  vp.onclick = ()=> toggleVisitedPin(p);
+  act.appendChild(vp);
   const e1 = el("button","pbtn","Edit"); e1.onclick=()=>openModal({mode:"editPin", pinId:p.id});
   const e2 = el("button","pbtn danger","Delete"); e2.onclick=()=>{ if(confirm("Delete this pin? (Photos already synced stay in the repo.)")){ deletePin(p.id); } };
   act.appendChild(e1); act.appendChild(e2); root.appendChild(act);
@@ -1017,10 +1122,12 @@ function openModal(ctx){
   const nameRow=document.getElementById("mNameRow"), catRow=document.getElementById("mCatRow");
   const regionRow=document.getElementById("mRegionRow");
   const tagsRow=document.getElementById("mTagsRow"), photoRow=document.getElementById("mPhotoRow");
+  const demolRow=document.getElementById("mDemolishedRow"), datesRow=document.getElementById("mDatesRow");
   const noteLabel=document.getElementById("mNoteLabel");
   document.getElementById("mPhotos").value="";
   tagsRow.style.display=""; photoRow.style.display=""; noteLabel.textContent="Notes";
-  document.getElementById("mRegion").value="";
+  demolRow.style.display=""; datesRow.style.display="";
+  document.getElementById("mRegion").value=""; fillDates({});
   if (ctx.mode==="newPin"){
     title.textContent="Add pin"; hint.textContent=pendingLatLng.lat.toFixed(4)+", "+pendingLatLng.lng.toFixed(4);
     nameRow.style.display=""; catRow.style.display="";
@@ -1033,12 +1140,14 @@ function openModal(ctx){
     document.getElementById("mName").value=p.n; document.getElementById("mRegion").value=p.r||""; catSel.value=resolveCat(p.c);
     document.getElementById("mTags").value=(p.tags||[]).join(", ");
     document.getElementById("mNote").value=p.d||"";
+    fillDates(p);
     modalPhotos=(p.photos||[]).slice();
   } else if (ctx.mode==="editBase"){
     const s=BASE_BY_ID[ctx.baseId];
     title.textContent="Edit location"; hint.textContent=s.r+" · "+s.lat.toFixed(4)+", "+s.lng.toFixed(4);
     nameRow.style.display=""; catRow.style.display="";
     tagsRow.style.display="none"; photoRow.style.display="none"; noteLabel.textContent="Description";
+    demolRow.style.display="none"; datesRow.style.display="none";
     document.getElementById("mName").value=s.n; document.getElementById("mRegion").value=s.r||""; catSel.value=resolveCat(s.c);
     document.getElementById("mNote").value=s.d||"";
   } else {
@@ -1047,18 +1156,63 @@ function openModal(ctx){
     nameRow.style.display="none"; catRow.style.display="none";
     document.getElementById("mTags").value=(x.tags||[]).join(", ");
     document.getElementById("mNote").value=x.note||"";
+    fillDates(x);
     modalPhotos=(x.photos||[]).slice();
   }
   regionRow.style.display = nameRow.style.display;
   drawThumbs(); veil.classList.add("open"); map.closePopup();
 }
+function fillDates(o){
+  o=o||{};
+  document.getElementById("mFirstVisit").value=o.firstVisit||"";
+  document.getElementById("mLastVisit").value=o.lastVisit||"";
+  document.getElementById("mDemolished").value=o.demolishedDate||"";
+  document.getElementById("mDemolitionNoted").value=o.demolitionNoted||"";
+  document.getElementById("mBuilt").value=o.built||"";
+}
+function readDates(){
+  const v=id=>document.getElementById(id).value;
+  return {
+    firstVisit: v("mFirstVisit")||null,
+    lastVisit: v("mLastVisit")||null,
+    demolishedDate: v("mDemolished")||null,
+    demolitionNoted: v("mDemolitionNoted")||null,
+    built: (v("mBuilt")||"").trim()||null
+  };
+}
+function earliestPhotoDate(){
+  const ds=modalPhotos.map(photoDate).filter(Boolean).sort();
+  return ds[0]||null;
+}
+function updateFirstVisitHint(){
+  const hint=document.getElementById("mFirstVisitHint"), fv=document.getElementById("mFirstVisit");
+  hint.textContent="";
+  const e=earliestPhotoDate();
+  if (e && !fv.value){
+    hint.appendChild(document.createTextNode("Earliest photo is "+e+" — "));
+    const b=document.createElement("button"); b.type="button"; b.className="linkish"; b.textContent="use as first visit";
+    b.onclick=()=>{ fv.value=e; updateFirstVisitHint(); };
+    hint.appendChild(b);
+  }
+}
+/* setting a demolished date implies the site is gone */
+document.getElementById("mDemolished").addEventListener("change", ()=>{
+  const v=document.getElementById("mDemolished").value;
+  if (v && CATS.gone && modalCtx && (modalCtx.mode==="newPin"||modalCtx.mode==="editPin")) catSel.value="gone";
+});
 function drawThumbs(){
   const w=document.getElementById("mThumbs"); w.innerHTML="";
-  modalPhotos.forEach((src,i)=>{
-    const d=el("div","ph"); const img=document.createElement("img"); img.src=resolvePhoto(src); d.appendChild(img);
+  modalPhotos.forEach((ph,i)=>{
+    if (typeof ph==="string") ph=modalPhotos[i]={src:ph,date:null};
+    const d=el("div","ph");
+    const img=document.createElement("img"); img.src=resolvePhoto(photoSrc(ph)); d.appendChild(img);
     const rm=el("button","rm","×"); rm.onclick=()=>{ modalPhotos.splice(i,1); drawThumbs(); }; d.appendChild(rm);
+    const di=document.createElement("input"); di.type="date"; di.className="phdate"; di.value=ph.date||""; di.title="Photo date";
+    di.onchange=()=>{ modalPhotos[i].date=di.value||null; updateFirstVisitHint(); };
+    d.appendChild(di);
     w.appendChild(d);
   });
+  updateFirstVisitHint();
 }
 /* EXIF: pull GPS + capture date out of the original file before canvas re-encoding strips it */
 function parseExif(dv){
@@ -1137,7 +1291,10 @@ document.getElementById("mPhotos").addEventListener("change", async e=>{
   });
   const g=metas.find(m=>m.exif && m.exif.lat!==undefined);
   if (g) offerPhotoGPS(g.exif);
-  for (const m of metas) await new Promise(res=> compressImage(m.f, src=>{ modalPhotos.push(src); res(); }));
+  for (const m of metas){
+    const date = m.exif && m.exif.when ? ymd(m.exif.when) : null;
+    await new Promise(res=> compressImage(m.f, src=>{ modalPhotos.push({src, date}); res(); }));
+  }
   drawThumbs();
 });
 function compressImage(file, cb){
@@ -1157,13 +1314,15 @@ document.getElementById("mSave").onclick=()=>{
   const tags=parseTags(document.getElementById("mTags").value);
   const note=document.getElementById("mNote").value.trim();
   const region=document.getElementById("mRegion").value.trim();
+  const dates=readDates();
   if (modalCtx.mode==="newPin"){
     const name=document.getElementById("mName").value.trim() || "Untitled pin";
-    user.pins.push({id:"p"+Date.now(), n:name, lat:pendingLatLng.lat, lng:pendingLatLng.lng,
-      c:catSel.value, r:region, tags, d:note, photos:modalPhotos});
+    user.pins.push(Object.assign({id:"p"+Date.now(), n:name, lat:pendingLatLng.lat, lng:pendingLatLng.lng,
+      c:catSel.value, r:region, tags, d:note, photos:modalPhotos}, dates));
   } else if (modalCtx.mode==="editPin"){
     const p=user.pins.find(q=>q.id===modalCtx.pinId);
     p.n=document.getElementById("mName").value.trim()||p.n; p.r=region; p.c=catSel.value; p.tags=tags; p.d=note; p.photos=modalPhotos;
+    Object.assign(p, dates);
     if (modalMoveTo){ p.lat=modalMoveTo.lat; p.lng=modalMoveTo.lng; }
   } else if (modalCtx.mode==="editBase"){
     const s=BASE_BY_ID[modalCtx.baseId];
@@ -1171,8 +1330,18 @@ document.getElementById("mSave").onclick=()=>{
     s.n=name; s.r=region; s.c=catSel.value; s.d=note;
     user.baseEdits[modalCtx.baseId]={n:name, r:region, c:catSel.value, d:note};
   } else {
-    if (!note && !tags.length && !modalPhotos.length) delete user.extras[modalCtx.siteId];
-    else user.extras[modalCtx.siteId]={note,tags,photos:modalPhotos};
+    const hasDates = Object.values(dates).some(v=>v);
+    if (!note && !tags.length && !modalPhotos.length && !hasDates) delete user.extras[modalCtx.siteId];
+    else user.extras[modalCtx.siteId]=Object.assign({note,tags,photos:modalPhotos}, dates);
+    // a demolished date on a surveyed site flips its status to "gone"
+    if (dates.demolishedDate && CATS.gone){
+      const s=BASE_BY_ID[modalCtx.siteId];
+      if (s && resolveCat(s.c)!=="gone"){
+        s.c="gone";
+        user.baseEdits[modalCtx.siteId]=Object.assign({}, user.baseEdits[modalCtx.siteId]||{n:s.n,r:s.r,d:s.d}, {c:"gone"});
+        toast("Marked “"+s.n+"” as gone.");
+      }
+    }
   }
   veil.classList.remove("open"); save(); refreshAll();
 };
