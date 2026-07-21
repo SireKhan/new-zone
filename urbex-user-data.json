@@ -18,11 +18,12 @@
      "date": null
     }
    ],
-   "firstVisit": null,
+   "firstVisit": "2026-03-21",
    "lastVisit": null,
    "demolishedDate": null,
    "demolitionNoted": null,
-   "built": null
+   "built": null,
+   "r": ""
   },
   {
    "id": "p1784596200130",
@@ -68,7 +69,7 @@
     "visited"
    ],
    "photos": [],
-   "firstVisit": null,
+   "firstVisit": "2026-03-21",
    "lastVisit": null,
    "demolishedDate": null,
    "demolitionNoted": null,
