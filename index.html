@@ -215,6 +215,7 @@
   <h3 id="mTitle">Add pin</h3>
   <div class="mhint" id="mHint"></div>
   <div id="mNameRow"><label>Name</label><input type="text" id="mName" placeholder="e.g. Mystery powerhouse off Rt 25"></div>
+  <div id="mRegionRow"><label>Location</label><input type="text" id="mRegion" placeholder="e.g. NJ, NYC, Hudson Valley"></div>
   <div id="mCatRow"><label>Status</label><select id="mCat"></select></div>
   <div id="mTagsRow">
     <label>Tags <span style="text-transform:none;letter-spacing:0">(comma-separated — used by the tag filter)</span></label>
@@ -470,6 +471,7 @@ function applyBaseEdits(){
   for (const [id, e] of Object.entries(user.baseEdits||{})){
     const s = BASE_BY_ID[id]; if (!s || !e) continue;
     if (e.n!==undefined) s.n = e.n;
+    if (e.r!==undefined) s.r = e.r;
     if (e.c!==undefined) s.c = e.c;
     if (e.d!==undefined) s.d = e.d;
   }
@@ -548,7 +550,7 @@ function pinPopup(p){
   if (p.d) root.appendChild(el("div","pp-note",p.d));
   tagStrip(root, p.tags);
   photoStrip(root, p.photos);
-  root.appendChild(el("div","pp-region", p.lat.toFixed(4)+", "+p.lng.toFixed(4)));
+  root.appendChild(el("div","pp-region", (p.r?p.r+" · ":"")+p.lat.toFixed(4)+", "+p.lng.toFixed(4)));
   const act = el("div","pp-actions");
   const e1 = el("button","pbtn","Edit"); e1.onclick=()=>openModal({mode:"editPin", pinId:p.id});
   const e2 = el("button","pbtn danger","Delete"); e2.onclick=()=>{ if(confirm("Delete this pin? (Photos already synced stay in the repo.)")){ deletePin(p.id); } };
@@ -721,7 +723,7 @@ function entryTags(kind, obj){
   return kind==="pin" ? (obj.tags||[]) : ((user.extras[obj.id]||{}).tags||[]);
 }
 function searchable(kind, obj){
-  if (kind==="pin") return [obj.n,obj.d,(obj.tags||[]).join(" ")].join(" ");
+  if (kind==="pin") return [obj.n,obj.r||"",obj.d,(obj.tags||[]).join(" ")].join(" ");
   const x = user.extras[obj.id]||{};
   return [obj.n,obj.r,obj.d,x.note||"",(x.tags||[]).join(" ")].join(" ");
 }
@@ -748,7 +750,7 @@ function render(){
     const it = el("div","item");
     const dist = myLoc ? ` <span class="dist">${haversineMi(myLoc,obj).toFixed(1)} mi</span>` : "";
     it.innerHTML = `<div class="nm"><span class="bar" style="background:${CATS[cat].color}"></span>${obj.n}${hasMedia}${dist}</div>`+
-                   `<div class="meta">${kind==="pin"?"your pin":obj.r} · ${CATS[cat].label}</div>`;
+                   `<div class="meta">${(kind==="pin" ? (obj.r || "your pin") : obj.r)} · ${CATS[cat].label}</div>`;
     it.onclick=()=>{
       if (tripMode){ toggleTripStop(kind,obj.id); return; }
       map.flyTo([obj.lat,obj.lng], Math.max(map.getZoom(),12), {duration:.7}); marker.openPopup();
@@ -1013,10 +1015,12 @@ function openModal(ctx){
   modalCtx=ctx; modalPhotos=[]; modalMoveTo=null;
   const title=document.getElementById("mTitle"), hint=document.getElementById("mHint");
   const nameRow=document.getElementById("mNameRow"), catRow=document.getElementById("mCatRow");
+  const regionRow=document.getElementById("mRegionRow");
   const tagsRow=document.getElementById("mTagsRow"), photoRow=document.getElementById("mPhotoRow");
   const noteLabel=document.getElementById("mNoteLabel");
   document.getElementById("mPhotos").value="";
   tagsRow.style.display=""; photoRow.style.display=""; noteLabel.textContent="Notes";
+  document.getElementById("mRegion").value="";
   if (ctx.mode==="newPin"){
     title.textContent="Add pin"; hint.textContent=pendingLatLng.lat.toFixed(4)+", "+pendingLatLng.lng.toFixed(4);
     nameRow.style.display=""; catRow.style.display="";
@@ -1026,7 +1030,7 @@ function openModal(ctx){
     const p=user.pins.find(q=>q.id===ctx.pinId);
     title.textContent="Edit pin"; hint.textContent=p.lat.toFixed(4)+", "+p.lng.toFixed(4);
     nameRow.style.display=""; catRow.style.display="";
-    document.getElementById("mName").value=p.n; catSel.value=resolveCat(p.c);
+    document.getElementById("mName").value=p.n; document.getElementById("mRegion").value=p.r||""; catSel.value=resolveCat(p.c);
     document.getElementById("mTags").value=(p.tags||[]).join(", ");
     document.getElementById("mNote").value=p.d||"";
     modalPhotos=(p.photos||[]).slice();
@@ -1035,7 +1039,7 @@ function openModal(ctx){
     title.textContent="Edit location"; hint.textContent=s.r+" · "+s.lat.toFixed(4)+", "+s.lng.toFixed(4);
     nameRow.style.display=""; catRow.style.display="";
     tagsRow.style.display="none"; photoRow.style.display="none"; noteLabel.textContent="Description";
-    document.getElementById("mName").value=s.n; catSel.value=resolveCat(s.c);
+    document.getElementById("mName").value=s.n; document.getElementById("mRegion").value=s.r||""; catSel.value=resolveCat(s.c);
     document.getElementById("mNote").value=s.d||"";
   } else {
     const x=user.extras[ctx.siteId]||{};
@@ -1045,6 +1049,7 @@ function openModal(ctx){
     document.getElementById("mNote").value=x.note||"";
     modalPhotos=(x.photos||[]).slice();
   }
+  regionRow.style.display = nameRow.style.display;
   drawThumbs(); veil.classList.add("open"); map.closePopup();
 }
 function drawThumbs(){
@@ -1151,19 +1156,20 @@ veil.addEventListener("click", e=>{ if(e.target===veil) veil.classList.remove("o
 document.getElementById("mSave").onclick=()=>{
   const tags=parseTags(document.getElementById("mTags").value);
   const note=document.getElementById("mNote").value.trim();
+  const region=document.getElementById("mRegion").value.trim();
   if (modalCtx.mode==="newPin"){
     const name=document.getElementById("mName").value.trim() || "Untitled pin";
     user.pins.push({id:"p"+Date.now(), n:name, lat:pendingLatLng.lat, lng:pendingLatLng.lng,
-      c:catSel.value, tags, d:note, photos:modalPhotos});
+      c:catSel.value, r:region, tags, d:note, photos:modalPhotos});
   } else if (modalCtx.mode==="editPin"){
     const p=user.pins.find(q=>q.id===modalCtx.pinId);
-    p.n=document.getElementById("mName").value.trim()||p.n; p.c=catSel.value; p.tags=tags; p.d=note; p.photos=modalPhotos;
+    p.n=document.getElementById("mName").value.trim()||p.n; p.r=region; p.c=catSel.value; p.tags=tags; p.d=note; p.photos=modalPhotos;
     if (modalMoveTo){ p.lat=modalMoveTo.lat; p.lng=modalMoveTo.lng; }
   } else if (modalCtx.mode==="editBase"){
     const s=BASE_BY_ID[modalCtx.baseId];
     const name=document.getElementById("mName").value.trim()||s.n;
-    s.n=name; s.c=catSel.value; s.d=note;
-    user.baseEdits[modalCtx.baseId]={n:name, c:catSel.value, d:note};
+    s.n=name; s.r=region; s.c=catSel.value; s.d=note;
+    user.baseEdits[modalCtx.baseId]={n:name, r:region, c:catSel.value, d:note};
   } else {
     if (!note && !tags.length && !modalPhotos.length) delete user.extras[modalCtx.siteId];
     else user.extras[modalCtx.siteId]={note,tags,photos:modalPhotos};
