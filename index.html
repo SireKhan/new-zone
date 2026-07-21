@@ -3,7 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#22292f">
 <title>Urbex Master Atlas — Field Map</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
@@ -27,6 +30,29 @@
   #controls{padding:12px 14px;border-bottom:1px solid var(--hair)}
   #q{width:100%;padding:7px 10px;background:#171c21;border:1px solid var(--hair);color:var(--panel-ink);font:13px ui-monospace,Consolas,monospace;border-radius:3px}
   #q::placeholder{color:#6f7982}
+  #gpsRow{display:flex;gap:5px;margin-top:6px}
+  #gps{flex:1;min-width:0;padding:7px 10px;background:#171c21;border:1px solid var(--hair);color:var(--panel-ink);font:12px ui-monospace,Consolas,monospace;border-radius:3px}
+  #gps::placeholder{color:#6f7982}
+  .pinDot{width:16px;height:16px;border-radius:50%;border:2px solid #0b3d40;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+  .leaflet-marker-draggable .pinDot{border-color:#fff;box-shadow:0 0 0 2px #0b3d40,0 1px 4px rgba(0,0,0,.5);cursor:grab}
+  .item{position:relative}
+  .item .del{position:absolute;top:8px;right:10px;width:18px;height:18px;border-radius:50%;border:1px solid #5a646e;background:transparent;color:#8b949c;font:11px/15px monospace;cursor:pointer;display:none}
+  .item:hover .del{display:block}
+  .item .del:hover{background:#c62828;border-color:#c62828;color:#fff}
+  .item .dist{font:10px ui-monospace,Consolas,monospace;color:#7fd4c1;margin-left:6px}
+  .meDot{width:16px;height:16px;border-radius:50%;background:#1a73e8;border:3px solid #fff;box-shadow:0 0 0 2px rgba(26,115,232,.35),0 1px 4px rgba(0,0,0,.4)}
+  .tnum{width:22px;height:22px;border-radius:50%;background:#1565c0;color:#fff;font:11px/22px ui-monospace,Consolas,monospace;text-align:center;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.45)}
+  #tripPanel{display:none;padding:11px 14px;border-bottom:1px solid var(--hair);background:#1b2127}
+  #tripPanel.open{display:block}
+  #tripPanel .tp-head{font:9px ui-monospace,Consolas,monospace;letter-spacing:.14em;text-transform:uppercase;color:#7fd4c1;margin-bottom:6px}
+  .tstop{display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px dashed #2b3238;font:12.5px Georgia,serif}
+  .tstop .tn{flex:none;width:18px;height:18px;border-radius:50%;background:#1565c0;color:#fff;font:10px/18px ui-monospace,Consolas,monospace;text-align:center}
+  .tstop .tnm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tstop .leg{flex:none;font:9.5px ui-monospace,Consolas,monospace;color:#8b949c}
+  .tstop .trm{flex:none;width:17px;height:17px;border-radius:50%;border:1px solid #5a646e;background:transparent;color:#8b949c;font:10px/14px monospace;cursor:pointer}
+  .tstop .trm:hover{background:#c62828;border-color:#c62828;color:#fff}
+  #tripTotals{font:10px/1.7 ui-monospace,Consolas,monospace;color:#aeb6bd;margin-top:7px;letter-spacing:.04em}
+  #tripBtns{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap}
   .flabel{font:9px ui-monospace,Consolas,monospace;color:#78828b;letter-spacing:.14em;text-transform:uppercase;margin:10px 0 5px}
   .filters{display:flex;flex-wrap:wrap;gap:5px}
   .chip{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border:1px solid var(--hair);border-radius:20px;font:10.5px ui-monospace,Consolas,monospace;cursor:pointer;user-select:none;color:#aeb6bd;letter-spacing:.03em}
@@ -91,6 +117,9 @@
   </div>
   <div class="hbtns">
     <button class="btn primary" id="addBtn">+ Add pin</button>
+    <button class="btn" id="dragBtn">Drag pins: off</button>
+    <button class="btn" id="locBtn">&#128205; Near me</button>
+    <button class="btn" id="tripBtn">&#129517; Trip</button>
     <button class="btn gh" id="syncBtn">Sync to GitHub</button>
     <button class="btn" id="ghBtn">GitHub &#9881;</button>
     <button class="btn" id="exportBtn">Export</button>
@@ -103,11 +132,26 @@
   <aside id="side">
     <div id="controls">
       <input id="q" type="search" placeholder="Search names, notes, tags&hellip;">
+      <div class="flabel">GPS / location lookup</div>
+      <div id="gpsRow">
+        <input id="gps" type="search" placeholder="40.7128, -74.0060 &mdash; or a place name">
+        <button class="btn" id="gpsGo">Go</button>
+      </div>
       <div class="flabel">Status</div>
       <div class="filters" id="catFilters"></div>
       <div class="flabel">Your tags</div>
       <div class="filters" id="tagFilters"><span style="font:10px monospace;color:#6f7982">none yet — add tags to pins</span></div>
       <div id="count"></div>
+      <button class="btn" id="restoreHidden" style="display:none;margin-top:8px;width:100%">Restore removed pins</button>
+    </div>
+    <div id="tripPanel">
+      <div class="tp-head">Trip planner &mdash; tap pins on the map or list to add stops</div>
+      <div id="tripStops"></div>
+      <div id="tripTotals">No stops yet.</div>
+      <div id="tripBtns">
+        <button class="btn" id="tripOpt">Optimize order</button>
+        <button class="btn" id="tripClear">Clear trip</button>
+      </div>
     </div>
     <div id="list"></div>
   </aside>
@@ -171,13 +215,13 @@ const GH_KEY = "urbexAtlasGH.v1";
 
 /* ---------- state & persistence ---------- */
 let storageOK = true;
-let user = { version:1, pins:[], extras:{} };
+let user = { version:1, pins:[], extras:{}, hiddenBase:[] };
 let gh = { owner:"", repo:"", branch:"main", token:"" };
 
 function loadLocal(){
   try {
     const raw = localStorage.getItem(STORE_KEY);
-    if (raw) user = Object.assign({version:1,pins:[],extras:{}}, JSON.parse(raw));
+    if (raw) user = Object.assign({version:1,pins:[],extras:{},hiddenBase:[]}, JSON.parse(raw));
     const g = localStorage.getItem(GH_KEY);
     if (g) gh = Object.assign(gh, JSON.parse(g));
   } catch(e){ storageOK = false; }
@@ -204,6 +248,7 @@ function mergeUser(incoming){
   (incoming.pins||[]).forEach(p=>{ byId[p.id] = p; });
   user.pins = Object.values(byId);
   user.extras = Object.assign({}, user.extras, incoming.extras||{});
+  user.hiddenBase = [...new Set([...(user.hiddenBase||[]), ...(incoming.hiddenBase||[])])];
 }
 
 /* ---------- GitHub API ---------- */
@@ -288,22 +333,47 @@ const map = L.map("map", {zoomSnap:0.5}).setView([40.9,-74.6], 7);
 L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",
   {maxZoom:19, attribution:"&copy; OpenStreetMap contributors"}).addTo(map);
 
+const BASE_BY_ID = Object.fromEntries(BASE.map(s=>[s.id,s]));
+function haversineMi(a,b){
+  const R=3958.76, toR=Math.PI/180;
+  const dLat=(b.lat-a.lat)*toR, dLng=(b.lng-a.lng)*toR;
+  const h=Math.sin(dLat/2)**2 + Math.cos(a.lat*toR)*Math.cos(b.lat*toR)*Math.sin(dLng/2)**2;
+  return 2*R*Math.asin(Math.sqrt(h));
+}
+function fmtDur(min){
+  const h=Math.floor(min/60), m=Math.round(min%60);
+  return h ? h+"h "+(m<10?"0":"")+m+"m" : m+" min";
+}
+
 const baseMarkers = {};
 BASE.forEach(s=>{
   const m = L.circleMarker([s.lat,s.lng],{radius:s.c==="home"?9:6.5,color:"#1d232a",weight:1.2,fillColor:CATS[s.c].color,fillOpacity:.92});
   m.on("popupopen", ()=> m.setPopupContent(basePopup(s)));
   m.bindPopup("…");
+  m.on("click", ()=>{ if(tripMode){ setTimeout(()=>m.closePopup(),0); toggleTripStop("base",s.id); } });
   baseMarkers[s.id]=m;
 });
 let pinMarkers = {};
+let dragEnabled = false;
+try { dragEnabled = localStorage.getItem("urbexAtlasDrag.v1") === "1"; } catch(e){}
+function pinIcon(col){
+  return L.divIcon({className:"", html:'<div class="pinDot" style="background:'+col+'"></div>', iconSize:[16,16], iconAnchor:[8,8]});
+}
 function rebuildPinMarkers(){
   Object.values(pinMarkers).forEach(m=>map.removeLayer(m));
   pinMarkers = {};
   user.pins.forEach(p=>{
     const col = (CATS[p.c]||CATS.custom).color;
-    const m = L.circleMarker([p.lat,p.lng],{radius:7.5,color:"#0b3d40",weight:1.6,fillColor:col,fillOpacity:.95});
+    const m = L.marker([p.lat,p.lng],{icon:pinIcon(col), draggable:dragEnabled});
     m.on("popupopen", ()=> m.setPopupContent(pinPopup(p)));
     m.bindPopup("…");
+    m.on("dragend", ()=>{
+      const ll = m.getLatLng();
+      p.lat = ll.lat; p.lng = ll.lng;
+      save(); render();
+      toast("Moved “"+p.n+"” to "+ll.lat.toFixed(4)+", "+ll.lng.toFixed(4));
+    });
+    m.on("click", ()=>{ if(tripMode){ setTimeout(()=>m.closePopup(),0); toggleTripStop("pin",p.id); } });
     pinMarkers[p.id]=m;
   });
 }
@@ -344,7 +414,9 @@ function basePopup(s){
   const act = el("div","pp-actions");
   const b = el("button","pbtn", (x.note||(x.photos&&x.photos.length)?"Edit my notes / photos":"+ Add notes / photos"));
   b.onclick = ()=> openModal({mode:"extra", siteId:s.id, siteName:s.n});
-  act.appendChild(b); root.appendChild(act);
+  const rm = el("button","pbtn danger","Remove pin");
+  rm.onclick = ()=>{ if(confirm("Remove “"+s.n+"” from your map? (Restore it any time from the sidebar.)")){ deleteBase(s.id); } };
+  act.appendChild(b); act.appendChild(rm); root.appendChild(act);
   return root;
 }
 function pinPopup(p){
@@ -357,10 +429,30 @@ function pinPopup(p){
   root.appendChild(el("div","pp-region", p.lat.toFixed(4)+", "+p.lng.toFixed(4)));
   const act = el("div","pp-actions");
   const e1 = el("button","pbtn","Edit"); e1.onclick=()=>openModal({mode:"editPin", pinId:p.id});
-  const e2 = el("button","pbtn danger","Delete"); e2.onclick=()=>{ if(confirm("Delete this pin? (Photos already synced stay in the repo.)")){ user.pins=user.pins.filter(q=>q.id!==p.id); save(); refreshAll(); map.closePopup(); } };
+  const e2 = el("button","pbtn danger","Delete"); e2.onclick=()=>{ if(confirm("Delete this pin? (Photos already synced stay in the repo.)")){ deletePin(p.id); } };
   act.appendChild(e1); act.appendChild(e2); root.appendChild(act);
   return root;
 }
+
+/* ---------- deleting pins ---------- */
+function deletePin(id){
+  user.pins = user.pins.filter(q=>q.id!==id);
+  if (trip.some(s=>s.kind==="pin"&&s.id===id)){ trip=trip.filter(s=>!(s.kind==="pin"&&s.id===id)); scheduleTripRoute(); }
+  save(); refreshAll(); map.closePopup();
+  toast("Pin deleted.");
+}
+function deleteBase(id){
+  if (!user.hiddenBase.includes(id)) user.hiddenBase.push(id);
+  if (trip.some(s=>s.kind==="base"&&s.id===id)){ trip=trip.filter(s=>!(s.kind==="base"&&s.id===id)); scheduleTripRoute(); }
+  save(); render(); map.closePopup();
+  toast("Pin removed from your map — use “Restore removed pins” in the sidebar to bring it back.");
+}
+document.getElementById("restoreHidden").onclick=()=>{
+  const n = user.hiddenBase.length;
+  user.hiddenBase = [];
+  save(); render();
+  toast("Restored "+n+" removed pin"+(n===1?"":"s")+".");
+};
 
 /* ---------- filters / search / list ---------- */
 const activeCats = new Set(Object.keys(CATS));
@@ -418,24 +510,217 @@ function render(){
     const x = kind==="base" ? (user.extras[obj.id]||{}) : obj;
     const hasMedia = (x.photos&&x.photos.length) ? ' <span class="cam">📷'+x.photos.length+'</span>' : "";
     const it = el("div","item");
-    it.innerHTML = `<div class="nm"><span class="bar" style="background:${CATS[cat].color}"></span>${obj.n}${hasMedia}</div>`+
+    const dist = myLoc ? ` <span class="dist">${haversineMi(myLoc,obj).toFixed(1)} mi</span>` : "";
+    it.innerHTML = `<div class="nm"><span class="bar" style="background:${CATS[cat].color}"></span>${obj.n}${hasMedia}${dist}</div>`+
                    `<div class="meta">${kind==="pin"?"your pin":obj.r} · ${CATS[cat].label}</div>`;
-    it.onclick=()=>{ map.flyTo([obj.lat,obj.lng], Math.max(map.getZoom(),12), {duration:.7}); marker.openPopup(); };
+    it.onclick=()=>{
+      if (tripMode){ toggleTripStop(kind,obj.id); return; }
+      map.flyTo([obj.lat,obj.lng], Math.max(map.getZoom(),12), {duration:.7}); marker.openPopup();
+    };
+    const del = el("button","del","×"); del.title = kind==="pin" ? "Delete pin" : "Remove pin from map";
+    del.onclick=(e)=>{
+      e.stopPropagation();
+      if (kind==="pin"){ if(confirm("Delete “"+obj.n+"”? (Photos already synced stay in the repo.)")) deletePin(obj.id); }
+      else { if(confirm("Remove “"+obj.n+"” from your map? (Restore it any time from the sidebar.)")) deleteBase(obj.id); }
+    };
+    it.appendChild(del);
     listEl.appendChild(it);
   };
+  const entries = [];
   user.pins.forEach(p=>{
     const m = pinMarkers[p.id];
-    if (visible("pin",p)){ if(!map.hasLayer(m)) m.addTo(map); addRow("pin",p,m); }
+    if (visible("pin",p)){ if(!map.hasLayer(m)) m.addTo(map); entries.push({kind:"pin",obj:p,m}); }
     else if (map.hasLayer(m)) map.removeLayer(m);
   });
   BASE.forEach(s=>{
     const m = baseMarkers[s.id];
-    if (visible("base",s)){ if(!map.hasLayer(m)) m.addTo(map); addRow("base",s,m); }
+    if (!user.hiddenBase.includes(s.id) && visible("base",s)){ if(!map.hasLayer(m)) m.addTo(map); entries.push({kind:"base",obj:s,m}); }
     else if (map.hasLayer(m)) map.removeLayer(m);
   });
+  if (myLoc) entries.sort((a,b)=>haversineMi(myLoc,a.obj)-haversineMi(myLoc,b.obj));
+  entries.forEach(e=>addRow(e.kind,e.obj,e.m));
   document.getElementById("count").textContent = shown+" of "+(BASE.length+user.pins.length)+" shown";
+  const rb = document.getElementById("restoreHidden");
+  rb.style.display = user.hiddenBase.length ? "" : "none";
+  rb.textContent = "Restore "+user.hiddenBase.length+" removed pin"+(user.hiddenBase.length===1?"":"s");
 }
 function refreshAll(){ rebuildPinMarkers(); renderTagChips(); render(); updateStorageBar(); }
+
+/* ---------- drag toggle ---------- */
+const dragBtn=document.getElementById("dragBtn");
+function applyDragState(){
+  dragBtn.textContent = "Drag pins: " + (dragEnabled ? "on" : "off");
+  dragBtn.classList.toggle("gh", dragEnabled);
+  Object.values(pinMarkers).forEach(m=>{
+    if (!m.dragging) return;
+    dragEnabled ? m.dragging.enable() : m.dragging.disable();
+  });
+}
+dragBtn.onclick=()=>{
+  dragEnabled=!dragEnabled;
+  try { localStorage.setItem("urbexAtlasDrag.v1", dragEnabled ? "1" : "0"); } catch(e){}
+  applyDragState();
+  toast(dragEnabled ? "Drag mode on — drag your pins to reposition them (saved automatically)." : "Drag mode off — pins are locked.");
+};
+applyDragState();
+
+/* ---------- GPS / location search ---------- */
+let gpsMarker=null;
+function goToLatLng(lat,lng,label){
+  if (gpsMarker) map.removeLayer(gpsMarker);
+  gpsMarker = L.marker([lat,lng]).addTo(map);
+  gpsMarker.bindPopup((label?label+"<br>":"")+lat.toFixed(5)+", "+lng.toFixed(5)).openPopup();
+  gpsMarker.on("popupclose", ()=>{ if(gpsMarker){ map.removeLayer(gpsMarker); gpsMarker=null; } });
+  map.flyTo([lat,lng], Math.max(map.getZoom(),14), {duration:.9});
+}
+function parseCoords(str){
+  const m = str.trim().match(/^(-?\d+(?:\.\d+)?)\s*[,\s]\s*(-?\d+(?:\.\d+)?)$/);
+  if (!m) return null;
+  const lat=parseFloat(m[1]), lng=parseFloat(m[2]);
+  if (lat<-90||lat>90||lng<-180||lng>180) return null;
+  return [lat,lng];
+}
+async function gpsSearch(){
+  const q=document.getElementById("gps").value.trim();
+  if (!q) return;
+  const c=parseCoords(q);
+  if (c){ goToLatLng(c[0],c[1]); return; }
+  try {
+    const r=await fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&q="+encodeURIComponent(q));
+    if (!r.ok) throw new Error("lookup → "+r.status);
+    const j=await r.json();
+    if (!j.length){ toast("No match for “"+q+"” — try coordinates like 40.7128, -74.0060"); return; }
+    goToLatLng(parseFloat(j[0].lat), parseFloat(j[0].lon), j[0].display_name);
+  } catch(e){ toast("Location lookup failed: "+e.message); }
+}
+document.getElementById("gpsGo").onclick=gpsSearch;
+document.getElementById("gps").addEventListener("keydown", e=>{ if(e.key==="Enter") gpsSearch(); });
+
+/* ---------- geolocation / near me ---------- */
+let myLoc=null, meMarker=null, meCircle=null, watchId=null;
+const locBtn=document.getElementById("locBtn");
+locBtn.onclick=()=>{
+  if (watchId!==null){ stopLocate(); toast("Location off — list back to normal order."); return; }
+  if (!navigator.geolocation){ toast("Geolocation isn't available in this browser."); return; }
+  locBtn.textContent="📍 Locating…";
+  watchId = navigator.geolocation.watchPosition(pos=>{
+    const first = !myLoc;
+    myLoc = L.latLng(pos.coords.latitude, pos.coords.longitude);
+    drawMe(pos.coords.accuracy||0);
+    locBtn.textContent="📍 Near me: on"; locBtn.classList.add("gh");
+    if (first){ map.flyTo(myLoc, Math.max(map.getZoom(),10), {duration:.9}); toast("Located ✓ — sidebar now sorted nearest-first, with distances."); }
+    render();
+  }, err=>{
+    toast("Couldn't get your location: "+err.message);
+    stopLocate();
+  }, {enableHighAccuracy:true, maximumAge:30000, timeout:20000});
+};
+function stopLocate(){
+  if (watchId!==null){ try{ navigator.geolocation.clearWatch(watchId); }catch(e){} }
+  watchId=null; myLoc=null;
+  if (meMarker){ map.removeLayer(meMarker); meMarker=null; }
+  if (meCircle){ map.removeLayer(meCircle); meCircle=null; }
+  locBtn.textContent="📍 Near me"; locBtn.classList.remove("gh");
+  render();
+}
+function drawMe(acc){
+  if (!meMarker){
+    meMarker = L.marker(myLoc, {icon:L.divIcon({className:"", html:'<div class="meDot"></div>', iconSize:[22,22], iconAnchor:[11,11]}), zIndexOffset:900}).addTo(map);
+    meMarker.bindPopup("You are here");
+  } else meMarker.setLatLng(myLoc);
+  if (acc>0 && acc<5000){
+    if (!meCircle) meCircle = L.circle(myLoc,{radius:acc,color:"#1a73e8",weight:1,fillColor:"#1a73e8",fillOpacity:.08}).addTo(map);
+    else meCircle.setLatLng(myLoc).setRadius(acc);
+  }
+}
+
+/* ---------- trip planner ---------- */
+let tripMode=false, trip=[], tripLegs=null, tripTotal=null, routeSeq=0, tripT=null;
+const tripLayer = L.layerGroup().addTo(map);
+const tripBtn=document.getElementById("tripBtn");
+tripBtn.onclick=()=>{
+  tripMode=!tripMode;
+  tripBtn.classList.toggle("gh", tripMode);
+  tripBtn.textContent = tripMode ? "🧭 Trip: selecting" : "🧭 Trip";
+  document.getElementById("tripPanel").classList.toggle("open", tripMode);
+  if (tripMode && !trip.length) toast("Trip mode — tap pins on the map or rows in the list to add stops in order.");
+};
+function getStop(s){ return s.kind==="pin" ? user.pins.find(q=>q.id===s.id) : BASE_BY_ID[s.id]; }
+function toggleTripStop(kind,id){
+  const i = trip.findIndex(s=>s.kind===kind && s.id===id);
+  if (i>=0) trip.splice(i,1); else trip.push({kind,id});
+  scheduleTripRoute();
+}
+function removeTripStop(i){ trip.splice(i,1); scheduleTripRoute(); }
+function scheduleTripRoute(){ renderTripList(); clearTimeout(tripT); tripT=setTimeout(updateTripRoute, 450); }
+function numIcon(n){ return L.divIcon({className:"", html:'<div class="tnum">'+n+'</div>', iconSize:[26,26], iconAnchor:[13,13]}); }
+async function updateTripRoute(){
+  const seq=++routeSeq;
+  tripLayer.clearLayers(); tripLegs=null; tripTotal=null;
+  const stops=trip.map(getStop).filter(Boolean);
+  stops.forEach((o,i)=> L.marker([o.lat,o.lng],{icon:numIcon(i+1), zIndexOffset:800}).addTo(tripLayer));
+  if (stops.length>=2){
+    const pts=stops.map(o=>L.latLng(o.lat,o.lng));
+    try {
+      const url="https://router.project-osrm.org/route/v1/driving/"+pts.map(p=>p.lng.toFixed(5)+","+p.lat.toFixed(5)).join(";")+"?overview=full&geometries=geojson";
+      const ac=new AbortController(); const kill=setTimeout(()=>ac.abort(), 8000);
+      const r=await fetch(url,{signal:ac.signal}).finally(()=>clearTimeout(kill));
+      if (!r.ok) throw new Error("router "+r.status);
+      const j=await r.json();
+      if (seq!==routeSeq) return;
+      if (j.code!=="Ok" || !j.routes || !j.routes.length) throw new Error("no route");
+      const rt=j.routes[0];
+      L.geoJSON(rt.geometry,{style:{color:"#1565c0",weight:4,opacity:.75}}).addTo(tripLayer);
+      tripLegs=rt.legs.map(l=>({mi:l.distance/1609.34, min:l.duration/60}));
+      tripTotal={mi:rt.distance/1609.34, min:rt.duration/60, est:false};
+    } catch(e){
+      if (seq!==routeSeq) return;
+      L.polyline(pts,{color:"#1565c0",weight:3,dashArray:"7 7",opacity:.7}).addTo(tripLayer);
+      tripLegs=[]; let mi=0;
+      for (let i=1;i<pts.length;i++){ const d=haversineMi(pts[i-1],pts[i])*1.3; tripLegs.push({mi:d, min:d/40*60}); mi+=d; }
+      tripTotal={mi, min:mi/40*60, est:true};
+    }
+  }
+  renderTripList();
+}
+function renderTripList(){
+  const w=document.getElementById("tripStops"); w.innerHTML="";
+  const stops=trip.map(getStop);
+  trip.forEach((s,i)=>{
+    const o=stops[i]; if(!o) return;
+    const row=el("div","tstop");
+    row.appendChild(el("span","tn",String(i+1)));
+    row.appendChild(el("span","tnm",o.n));
+    if (i>0 && tripLegs && tripLegs[i-1]) row.appendChild(el("span","leg",tripLegs[i-1].mi.toFixed(1)+" mi · "+fmtDur(tripLegs[i-1].min)));
+    const rm=el("button","trm","×"); rm.onclick=()=>removeTripStop(i); row.appendChild(rm);
+    w.appendChild(row);
+  });
+  const t=document.getElementById("tripTotals");
+  if (!trip.length) t.textContent="No stops yet.";
+  else if (trip.length<2) t.textContent="1 stop — add another to route it.";
+  else if (tripTotal){
+    const onSite=45*trip.length;
+    t.innerHTML = trip.length+" stops · "+tripTotal.mi.toFixed(0)+" mi · "+fmtDur(tripTotal.min)+" driving"+
+      "<br>≈ "+fmtDur(tripTotal.min+onSite)+" total with ~45 min per stop"+
+      (tripTotal.est ? "<br>(straight-line estimate — routing service unreachable)" : "");
+  } else t.textContent="Routing…";
+}
+document.getElementById("tripClear").onclick=()=>{ trip=[]; tripLegs=null; tripTotal=null; tripLayer.clearLayers(); renderTripList(); };
+document.getElementById("tripOpt").onclick=()=>{
+  if (trip.length<3 && !myLoc){ toast("Add at least 3 stops (or turn on Near me) to optimize."); return; }
+  const rest=trip.slice(), out=[];
+  let cur;
+  if (myLoc) cur=myLoc;
+  else { out.push(rest.shift()); const o=getStop(out[0]); cur=L.latLng(o.lat,o.lng); }
+  while (rest.length){
+    let bi=0, bd=Infinity;
+    rest.forEach((s,i)=>{ const o=getStop(s); if(!o) return; const d=haversineMi(cur,o); if(d<bd){bd=d;bi=i;} });
+    const s=rest.splice(bi,1)[0]; out.push(s);
+    const o=getStop(s); if(o) cur=L.latLng(o.lat,o.lng);
+  }
+  trip=out; scheduleTripRoute();
+  toast("Reordered nearest-first"+(myLoc?" starting from your location.":" from the first stop."));
+};
 
 /* ---------- add-pin mode ---------- */
 let adding=false, pendingLatLng=null;
@@ -455,14 +740,14 @@ map.on("click", e=>{
 });
 
 /* ---------- pin/notes modal ---------- */
-let modalCtx=null, modalPhotos=[];
+let modalCtx=null, modalPhotos=[], modalMoveTo=null;
 const veil=document.getElementById("veil");
 const catSel=document.getElementById("mCat");
 for (const [k,v] of Object.entries(CATS)){
   const o=document.createElement("option"); o.value=k; o.textContent=v.label; catSel.appendChild(o);
 }
 function openModal(ctx){
-  modalCtx=ctx; modalPhotos=[];
+  modalCtx=ctx; modalPhotos=[]; modalMoveTo=null;
   const title=document.getElementById("mTitle"), hint=document.getElementById("mHint");
   const nameRow=document.getElementById("mNameRow"), catRow=document.getElementById("mCatRow");
   document.getElementById("mPhotos").value="";
@@ -497,8 +782,85 @@ function drawThumbs(){
     w.appendChild(d);
   });
 }
-document.getElementById("mPhotos").addEventListener("change", e=>{
-  [...e.target.files].forEach(f=> compressImage(f, src=>{ modalPhotos.push(src); drawThumbs(); }));
+/* EXIF: pull GPS + capture date out of the original file before canvas re-encoding strips it */
+function parseExif(dv){
+  if (dv.byteLength<4 || dv.getUint16(0)!==0xFFD8) return null;
+  let o=2;
+  while (o+4 <= dv.byteLength){
+    const marker=dv.getUint16(o);
+    if ((marker & 0xFF00)!==0xFF00 || marker===0xFFDA) break;
+    const len=dv.getUint16(o+2);
+    if (marker===0xFFE1 && o+10<=dv.byteLength && dv.getUint32(o+4)===0x45786966) return parseTiff(dv, o+10);
+    o += 2+len;
+  }
+  return null;
+}
+function parseTiff(dv, t){
+  const le = dv.getUint16(t)===0x4949;
+  const u16=p=>dv.getUint16(t+p, le), u32=p=>dv.getUint32(t+p, le);
+  const rat=p=>{ const n=u32(p), d=u32(p+4); return d ? n/d : 0; };
+  const SIZES={1:1,2:1,3:2,4:4,5:8,7:1,9:4,10:8};
+  function entries(off){
+    const n=u16(off), m={};
+    for (let i=0;i<n;i++){ const e=off+2+i*12; m[u16(e)]=e; }
+    return m;
+  }
+  function valOff(e){ const size=(SIZES[u16(e+2)]||1)*u32(e+4); return size<=4 ? e+8 : u32(e+8); }
+  function ascii(e){ const c=u32(e+4), p=valOff(e); let s=""; for(let i=0;i<c-1;i++) s+=String.fromCharCode(dv.getUint8(t+p+i)); return s; }
+  const out={};
+  const ifd0=entries(u32(4));
+  if (ifd0[0x8769]){
+    const ex=entries(u32(ifd0[0x8769]+8));
+    if (ex[0x9003]){
+      const m=ascii(ex[0x9003]).match(/(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})/);
+      if (m) out.when=new Date(+m[1],+m[2]-1,+m[3],+m[4],+m[5],+m[6]);
+    }
+  }
+  if (ifd0[0x8825]){
+    const g=entries(u32(ifd0[0x8825]+8));
+    if (g[0x0002] && g[0x0004]){
+      const dms=e=>{ const p=valOff(e); return rat(p)+rat(p+8)/60+rat(p+16)/3600; };
+      let lat=dms(g[0x0002]), lng=dms(g[0x0004]);
+      if (g[0x0001] && /S/i.test(ascii(g[0x0001]))) lat=-lat;
+      if (g[0x0003] && /W/i.test(ascii(g[0x0003]))) lng=-lng;
+      if ((lat||lng) && Math.abs(lat)<=90 && Math.abs(lng)<=180){ out.lat=lat; out.lng=lng; }
+    }
+  }
+  return (out.lat!==undefined || out.when) ? out : null;
+}
+function readExif(file){
+  return new Promise(res=>{
+    const fr=new FileReader();
+    fr.onload=()=>{ try{ res(parseExif(new DataView(fr.result))); }catch(e){ res(null); } };
+    fr.onerror=()=>res(null);
+    fr.readAsArrayBuffer(file.slice(0, 262144));
+  });
+}
+function offerPhotoGPS(x){
+  if (modalCtx.mode==="extra") return;
+  const where=x.lat.toFixed(5)+", "+x.lng.toFixed(5);
+  const when=x.when ? " (taken "+x.when.toLocaleDateString()+")" : "";
+  if (!confirm("This photo has GPS coordinates: "+where+when+".\nPlace the pin exactly there?")) return;
+  const ll=L.latLng(x.lat,x.lng);
+  if (modalCtx.mode==="newPin") pendingLatLng=ll; else modalMoveTo=ll;
+  document.getElementById("mHint").textContent=ll.lat.toFixed(4)+", "+ll.lng.toFixed(4)+" — from photo GPS";
+}
+document.getElementById("mPhotos").addEventListener("change", async e=>{
+  const files=[...e.target.files];
+  if (!files.length) return;
+  const metas=await Promise.all(files.map(async (f,i)=>({f, i, exif:await readExif(f)})));
+  metas.sort((a,b)=>{
+    const ta=a.exif&&a.exif.when ? a.exif.when.getTime() : null;
+    const tb=b.exif&&b.exif.when ? b.exif.when.getTime() : null;
+    if (ta!==null && tb!==null) return ta-tb;
+    if (ta!==null) return -1;
+    if (tb!==null) return 1;
+    return a.i-b.i;
+  });
+  const g=metas.find(m=>m.exif && m.exif.lat!==undefined);
+  if (g) offerPhotoGPS(g.exif);
+  for (const m of metas) await new Promise(res=> compressImage(m.f, src=>{ modalPhotos.push(src); res(); }));
+  drawThumbs();
 });
 function compressImage(file, cb){
   const img=new Image();
@@ -523,6 +885,7 @@ document.getElementById("mSave").onclick=()=>{
   } else if (modalCtx.mode==="editPin"){
     const p=user.pins.find(q=>q.id===modalCtx.pinId);
     p.n=document.getElementById("mName").value.trim()||p.n; p.c=catSel.value; p.tags=tags; p.d=note; p.photos=modalPhotos;
+    if (modalMoveTo){ p.lat=modalMoveTo.lat; p.lng=modalMoveTo.lng; }
   } else {
     if (!note && !tags.length && !modalPhotos.length) delete user.extras[modalCtx.siteId];
     else user.extras[modalCtx.siteId]={note,tags,photos:modalPhotos};
@@ -581,6 +944,11 @@ let toastT;
 function toast(msg){
   const t=document.getElementById("toast"); t.textContent=msg; t.style.display="block";
   clearTimeout(toastT); toastT=setTimeout(()=>t.style.display="none", 5200);
+}
+
+/* ---------- offline support (service worker caches viewed map tiles + app shell) ---------- */
+if ("serviceWorker" in navigator && (location.protocol==="https:" || location.hostname==="localhost" || location.hostname==="127.0.0.1")){
+  navigator.serviceWorker.register("sw.js").catch(()=>{});
 }
 
 loadLocal();
