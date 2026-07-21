@@ -165,6 +165,16 @@
   .rrow.memo .rmeta{color:#c98a6a}
   .rrow .rdot{width:9px;height:9px;border-radius:50%;background:#1a73e8;flex:none}
   .rec-empty{padding:30px 24px;text-align:center;font:14px/1.65 Georgia,serif;color:#9aa3ab}
+  .achcat{padding:14px 14px 13px;border-bottom:1px solid #2b3238}
+  .ach-head{display:flex;align-items:center;gap:11px}
+  .ach-ico{font-size:24px;flex:none}
+  .ach-htext{flex:1;min-width:0}
+  .ach-label{font:700 14px Georgia,serif}
+  .ach-sub{font:10px ui-monospace,Consolas,monospace;color:#8b949c;margin-top:2px;letter-spacing:.03em}
+  .ach-count{font:700 26px Georgia,serif;color:#7fd4c1;flex:none}
+  .ach-tiers{display:flex;gap:6px;flex-wrap:wrap;margin-top:11px}
+  .ach-tier{min-width:34px;text-align:center;padding:5px 9px;border-radius:16px;border:1px solid var(--hair);background:#2c343c;color:#6f7982;font:11px ui-monospace,Consolas,monospace}
+  .ach-tier.on{background:#155e63;border-color:#1d7a80;color:#fff;font-weight:700}
   .veil{position:fixed;inset:0;background:rgba(15,18,22,.62);display:none;align-items:center;justify-content:center;z-index:2000;padding:16px}
   .veil.open{display:flex}
   .modal{background:var(--paper);width:100%;max-width:430px;max-height:92vh;overflow-y:auto;border-radius:5px;padding:18px 20px;border-top:4px solid #155e63}
@@ -1647,7 +1657,7 @@ function annFooter(){
   d.appendChild(el("div","annflyhint","tap card → fly there · tap here → what's next"));
   return d;
 }
-const FALLBACK_IMG="fallback-site.svg";
+const FALLBACK_IMG="fallback-site.jpg";
 function openAnniversaryCard(ev){
   if (!ev) return;
   cardEvent=ev; cardClicks=0;
@@ -1761,11 +1771,49 @@ function renderRecord(){
       saveRec();
     }
   } else {
-    body.appendChild(recEmpty("Achievements are coming soon — badges for milestones reached, sites documented, ghosts released, flowers left."));
+    renderAchievements(body);
   }
   const pb=document.getElementById("recPassedBadge"), n=unseenPassed().length;
   pb.textContent=n||""; pb.style.display=n?"":"none";
   updateAnnBadge();
+}
+/* ---- achievements ---- */
+const ACH_TIERS=[1,5,10,25,50,75,100];
+function sumCounts(o){ return Object.values(o||{}).reduce((a,b)=>a+(b||0),0); }
+function countVisited(){
+  let n=0;
+  user.pins.forEach(p=>{ if((p.tags||[]).includes(VISITED_TAG)) n++; });
+  Object.values(user.extras).forEach(x=>{ if((x.tags||[]).includes(VISITED_TAG)) n++; });
+  return n;
+}
+function countPhotos(){
+  let n=0;
+  user.pins.forEach(p=>n+=(p.photos||[]).length);
+  Object.values(user.extras).forEach(x=>n+=(x.photos||[]).length);
+  return n;
+}
+function renderAchievements(body){
+  const cats=[
+    {icon:"📍", label:"Places visited", n:countVisited(), unit:"tagged visited"},
+    {icon:"📷", label:"Pictures taken", n:countPhotos(), unit:"photos added"},
+    {icon:"👻", label:"Ghosts released", n:sumCounts(rec.ghosts), unit:"ghosts"},
+    {icon:"💐", label:"Flowers left", n:sumCounts(rec.flowers), unit:"flowers"}
+  ];
+  cats.forEach(c=>{
+    const sec=el("div","achcat"), head=el("div","ach-head");
+    head.appendChild(el("span","ach-ico",c.icon));
+    const ht=el("div","ach-htext");
+    ht.appendChild(el("div","ach-label",c.label));
+    const next=ACH_TIERS.find(t=>c.n<t);
+    ht.appendChild(el("div","ach-sub", c.n.toLocaleString()+" "+c.unit+(next?(" · "+(next-c.n).toLocaleString()+" more to reach "+next):" · every badge unlocked!")));
+    head.appendChild(ht);
+    head.appendChild(el("div","ach-count", c.n.toLocaleString()));
+    sec.appendChild(head);
+    const tiers=el("div","ach-tiers");
+    ACH_TIERS.forEach(t=>{ tiers.appendChild(el("div","ach-tier"+(c.n>=t?" on":""), (c.n>=t?"✓ ":"")+t)); });
+    sec.appendChild(tiers);
+    body.appendChild(sec);
+  });
 }
 document.getElementById("annBtn").onclick=openRecord;
 document.getElementById("recBack").onclick=closeRecord;
