@@ -96,16 +96,6 @@
       return (ctx && ctx[k] != null) ? String(ctx[k]) : m;
     });
   }
-  // Past ~70 years, "you" becomes the user's name — the pronoun shift is the joke.
-  function pronounShift(line, name){
-    if (!name || name === "you") return line;
-    return line
-      .replace(/\bYour\b/g, name + "’s")
-      .replace(/\byour\b/g, name + "’s")
-      .replace(/\bYou\b/g, name)
-      .replace(/\byou\b/g, name);
-  }
-
   // Up to 5 photos: earliest, latest, and three spread between — the arc, not one afternoon.
   function selectPhotos(photos){
     var list = (photos || []).slice();
@@ -121,6 +111,48 @@
 
   function builtYear(built){ var p = parts(built); return p ? p.y : null; }
 
+  // --- upcoming (future) anniversaries: for the card footer and date checks ---
+  function pad2(n){ return (n < 10 ? "0" : "") + n; }
+  function ymdStr(y, m, d){ return y + "-" + pad2(m) + "-" + pad2(d); }
+  function dayNum(s){ var p = parts(s); return p ? Date.UTC(p.y, p.m - 1, p.d) / 86400000 : NaN; }
+  // The date this anchor's day lands on in a given year (Feb 29 -> Mar 1 in non-leap years).
+  function occurrenceInYear(anchor, year){
+    var a = parts(anchor);
+    if (a.m === 2 && a.d === 29) return isLeap(year) ? ymdStr(year, 2, 29) : ymdStr(year, 3, 1);
+    return ymdStr(year, a.m, a.d);
+  }
+  // The next time this anchor occurs strictly AFTER fromStr.
+  function nextOccurrence(anchor, fromStr){
+    var a = parts(anchor), f = parts(fromStr);
+    if (!a || !f || a.m == null) return null;
+    var year = f.y, occ = occurrenceInYear(anchor, year);
+    if (dayNum(occ) <= dayNum(fromStr)){ year++; occ = occurrenceInYear(anchor, year); }
+    return { date: occ, years: year - a.y };
+  }
+  function upcomingEvents(user, fromStr, opts){
+    opts = opts || {};
+    var copy = opts.copy || (typeof window !== "undefined" && window.ANNIVERSARY_COPY) || {};
+    var list = [];
+    if (!user) return list;
+    sitesOf(user, opts.baseName).forEach(function(entry){
+      [["visit","firstVisit"], ["demolition","demolishedDate"]].forEach(function(pair){
+        var anchor = entry.site[pair[1]];
+        if (!anchor) return;
+        var no = nextOccurrence(anchor, fromStr);
+        if (!no || no.years < 1) return;
+        var by = builtYear(entry.site.built);
+        var ctx = { location: entry.name, years: no.years, date: anchor, user: "You",
+          building_age: (by != null) ? (parts(no.date).y - by) : null };
+        var tl = tierAndLine(pair[0], no.years, entry.id, copy);
+        list.push({ siteId: entry.id, siteName: entry.name, kind: pair[0], years: no.years,
+          anchorDate: anchor, date: no.date, daysOut: dayNum(no.date) - dayNum(fromStr),
+          tier: tl.tier, line: format(tl.line, ctx), photos: selectPhotos(entry.site.photos) });
+      });
+    });
+    list.sort(function(a,b){ return a.daysOut - b.daysOut || (a.kind < b.kind ? -1 : 1); });
+    return list;
+  }
+
   function sitesOf(user, baseName){
     var out = [];
     (user.pins || []).forEach(function(p){ out.push({ id:p.id, name:p.n, site:p }); });
@@ -133,7 +165,6 @@
   function computeEvents(user, todayStr, opts){
     opts = opts || {};
     var copy = opts.copy || (typeof window !== "undefined" && window.ANNIVERSARY_COPY) || {};
-    var userName = opts.userName || "you";
     var t = parts(todayStr), todayYear = t ? t.y : null;
     var events = [];
     if (!user) return events;
@@ -145,15 +176,13 @@
         if (years < 1) return;
         var by = builtYear(entry.site.built);
         var ctx = {
-          location: entry.name, years: years, date: anchor, user: userName,
+          location: entry.name, years: years, date: anchor, user: "You",
           building_age: (by != null && todayYear != null) ? (todayYear - by) : null
         };
         var tl = tierAndLine(kind, years, entry.id, copy);
-        var line = format(tl.line, ctx);
-        if (kind === "visit" && years >= 70) line = pronounShift(line, userName);
         events.push({
           siteId: entry.id, siteName: entry.name, kind: kind, years: years,
-          anchorDate: anchor, tier: tl.tier, line: line, photos: selectPhotos(entry.site.photos)
+          anchorDate: anchor, tier: tl.tier, line: format(tl.line, ctx), photos: selectPhotos(entry.site.photos)
         });
       });
     });
@@ -166,9 +195,9 @@
   }
 
   var API = {
-    computeEvents: computeEvents, format: format, firesToday: firesToday,
-    yearsBetween: yearsBetween, isMilestone: isMilestone, hash: hash,
-    selectPhotos: selectPhotos, pronounShift: pronounShift, tierAndLine: tierAndLine
+    computeEvents: computeEvents, upcomingEvents: upcomingEvents, nextOccurrence: nextOccurrence,
+    format: format, firesToday: firesToday, yearsBetween: yearsBetween, isMilestone: isMilestone,
+    hash: hash, dayNum: dayNum, selectPhotos: selectPhotos, tierAndLine: tierAndLine
   };
   if (typeof window !== "undefined") window.Anniversary = API;
   if (typeof module !== "undefined" && module.exports) module.exports = API;
