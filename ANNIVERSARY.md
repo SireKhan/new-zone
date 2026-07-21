@@ -143,8 +143,8 @@ Returned events:
   `Math.random`), so it's stable across reopens and varies by site/year.
 - Generic lines are tone-tagged (`warm|wry|absurd|plain`) and weighted by
   year: **1–3 skew warm**, later years skew absurd.
-- Past **70 years** on visit anniversaries, `you`/`your` are swapped for the
-  user's name — the pronoun shift is the joke.
+- The voice is always second person — `{user}` resolves to **"You"**. There is
+  no name substitution or pronoun swap.
 
 ### `format(line, ctx)`
 
@@ -152,11 +152,50 @@ Replaces `{location} {years} {date} {user} {building_age}`. Unknown or null
 placeholders are **left intact** (`{bogus}` stays `{bogus}`), never
 `undefined`.
 
-### App bridge
+### Upcoming / date checks
 
-`window.anniversaryEventsToday(dateStr?)` in `index.html` wires the live
-`user` object, the resolved base names, and `annUserName()` into the engine.
-No cards or Record tab yet — that's Phase 3/4.
+`Anniversary.upcomingEvents(user, fromStr, opts)` returns future anniversaries
+(next occurrence strictly after `fromStr`) sorted by `daysOut`, each with
+`{date, daysOut, years, tier, line, ...}`. Used by the card footer and the
+date-check hub. `nextOccurrence(anchor, fromStr)` gives the next date an anchor
+lands on (Feb-29 → Mar-1 in non-leap years).
+
+## The cards (Phase 3)
+
+`openAnniversaryCard(event)` renders one of two variants over `#annVeil`:
+
+- **Anniversary (visit)** — light card, photo strip earliest→latest, a **cake**
+  button that spawns ghosts (drifting up, fading; ~1/50 a party variant) plus
+  confetti whose colors sample the centered photo. Escalates with clicks
+  (1 → a few → screen-filling). Counter: "you have released N ghosts from this
+  building."
+- **Memorial (demolition)** — muted dark card, no confetti, photo strip
+  **last-first** with the final frame labeled "The last time you saw this
+  standing," a **flowers** button whose petals fall and **accumulate** at the
+  card's base. Counter: "you have left N flowers here."
+
+Both: footer with the next upcoming anniversary (or "No anniversaries on the
+horizon. Go find somewhere new."); tap the card to fly to the pin and open its
+popup; dismissible (never destroys the event); **`prefers-reduced-motion`** →
+no particles, counters still count; optional sound, **default off**.
+
+Performance: one `requestAnimationFrame` loop, particle cap 420, canvas
+transforms only.
+
+Counters and seen/opened state live in **`urbexAtlasRecord.v1`** (device-local,
+never synced). At most **one** card fires on launch — today's most significant
+*unseen* event; everything else waits in the hub.
+
+## Date control (device vs. custom)
+
+The 🎂 **Anniversaries** button opens a hub where you choose whether the site
+checks against **your device's date** or **a date you pick**. A custom date is
+stored in `urbexAtlasDateOverride` (device-local) and drives `effectiveToday()`,
+which every anniversary computation uses. The hub lists that date's
+anniversaries (tap to open the card) and the next upcoming one.
+
+_The Record tab (Phase 4) is not yet implemented; the hub is the interim entry
+point._
 
 ## Adding copy lines
 

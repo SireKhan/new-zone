@@ -101,6 +101,50 @@
   .leaflet-popup.visited-popup .leaflet-popup-tip{background:#e7c65a}
   .leaflet-popup.visited-popup .pp-note{color:#3a3320}
   .leaflet-popup.visited-popup .pbtn{background:#f3e6b0;border-color:#b79b3e}
+  /* ---------- anniversary cards + hub (Phase 3) ---------- */
+  #annParticles{position:fixed;inset:0;pointer-events:none;z-index:3600;display:none}
+  #annParticles.on{display:block}
+  #annVeil{position:fixed;inset:0;background:rgba(10,12,14,.72);display:none;align-items:center;justify-content:center;z-index:3500;padding:16px}
+  #annVeil.open{display:flex}
+  .anncard{position:relative;width:100%;max-width:440px;max-height:92vh;overflow:hidden;border-radius:16px;background:var(--paper);color:var(--ink);box-shadow:0 22px 64px rgba(0,0,0,.55);display:flex;flex-direction:column}
+  .anncard.memorial{background:#23262a;color:#d7d9db}
+  .annclose{position:absolute;top:9px;right:11px;z-index:5;width:27px;height:27px;border-radius:50%;border:none;background:rgba(0,0,0,.28);color:#fff;font:15px/1 ui-monospace,monospace;cursor:pointer}
+  .annyears{font:10px ui-monospace,Consolas,monospace;letter-spacing:.15em;text-transform:uppercase;color:#9a7d1c}
+  .anncard.memorial .annyears{color:#9aa3ab}
+  .annhead{padding:20px 20px 8px;font:700 19px/1.35 Georgia,serif}
+  .anncard.memorial .annhead{font-weight:600}
+  .annhead .annyears{display:block;margin-bottom:6px}
+  .annstrip{display:flex;gap:7px;overflow-x:auto;padding:4px 20px 8px}
+  .annstrip figure{flex:none;margin:0;text-align:center}
+  .annstrip img{height:128px;width:auto;max-width:220px;object-fit:cover;border-radius:7px;border:1px solid rgba(0,0,0,.18);display:block}
+  .anncard.memorial .annstrip img{border-color:rgba(255,255,255,.14)}
+  .annstrip figcaption{font:9px ui-monospace,Consolas,monospace;color:#8a7f66;margin-top:4px;max-width:220px;white-space:normal}
+  .anncard.memorial .annstrip figcaption{color:#9aa3ab}
+  .annstrip figure.annlast figcaption{color:#c0392b;font-weight:700;letter-spacing:.04em}
+  .annnophoto{padding:2px 20px 8px;font:11px Georgia,serif;color:#8a7f66}
+  .annact{display:flex;align-items:center;gap:13px;padding:8px 20px 6px}
+  .annbtn{font:24px/1 system-ui,"Segoe UI Emoji";background:#f3e6b0;border:1px solid #b79b3e;border-radius:12px;padding:7px 13px;cursor:pointer;user-select:none;transition:transform .06s}
+  .annbtn:active{transform:scale(.9)}
+  .anncard.memorial .annbtn{background:#343941;border-color:#565c64}
+  .anncounter{font:10px ui-monospace,Consolas,monospace;color:#8a7f66;letter-spacing:.03em}
+  .anncard.memorial .anncounter{color:#9aa3ab}
+  .annsound{margin-left:auto;font:11px ui-monospace,monospace;background:none;border:1px solid #b9b4a8;border-radius:5px;padding:3px 7px;cursor:pointer;color:inherit}
+  .anncard.memorial .annsound{border-color:#565c64}
+  .annfoot{margin-top:auto;padding:11px 20px 15px;border-top:1px solid rgba(0,0,0,.12);font:11px/1.5 Georgia,serif;color:#5a5648;cursor:pointer}
+  .anncard.memorial .annfoot{border-color:rgba(255,255,255,.1);color:#aeb6bd}
+  .annfoot b{color:inherit}
+  .annflyhint{font:9px ui-monospace,monospace;letter-spacing:.1em;text-transform:uppercase;opacity:.6;margin-top:4px}
+  /* hub / date modal */
+  .annrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0}
+  .annrow label{display:inline-flex;align-items:center;gap:6px;text-transform:none;letter-spacing:0;font:13px Georgia,serif;color:var(--ink);margin:0}
+  #annDateInput{padding:6px 8px}
+  .annlist{margin-top:6px}
+  .annlistrow{display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid #d8d3c7;cursor:pointer}
+  .annlistrow:hover{background:#eae6dc}
+  .annlistrow .al-nm{font:13px Georgia,serif;font-weight:700}
+  .annlistrow .al-meta{font:10px ui-monospace,monospace;color:#777;text-transform:uppercase;letter-spacing:.05em}
+  .annlistrow.memo .al-meta{color:#a0512e}
+  .annbadge{display:inline-block;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#c62828;color:#fff;font:10px/16px ui-monospace,monospace;text-align:center;margin-left:5px;vertical-align:1px}
   .veil{position:fixed;inset:0;background:rgba(15,18,22,.62);display:none;align-items:center;justify-content:center;z-index:2000;padding:16px}
   .veil.open{display:flex}
   .modal{background:var(--paper);width:100%;max-width:430px;max-height:92vh;overflow-y:auto;border-radius:5px;padding:18px 20px;border-top:4px solid #155e63}
@@ -180,6 +224,7 @@
     <button class="btn" id="dragBtn">Drag pins: off</button>
     <button class="btn" id="locBtn">&#128205; Near me</button>
     <button class="btn" id="tripBtn">&#129517; Trip</button>
+    <button class="btn" id="annBtn">&#127874; Anniversaries</button>
     <button class="btn gh" id="syncBtn">Sync to GitHub</button>
     <button class="btn" id="ghBtn">GitHub &#9881;</button>
     <button class="btn" id="exportBtn">Export</button>
@@ -299,6 +344,27 @@
     </span>
   </div>
 </div></div>
+
+<div class="veil" id="annHub"><div class="modal">
+  <h3>Anniversaries</h3>
+  <div class="mhint" id="annHubHint">what today looks like on the map</div>
+  <label style="margin-top:4px">Date the site checks against</label>
+  <div class="annrow">
+    <label><input type="radio" name="annDateMode" id="annModeDevice" value="device"> Use my device's date</label>
+    <label><input type="radio" name="annDateMode" id="annModeCustom" value="custom"> Use a date I pick</label>
+  </div>
+  <div class="annrow">
+    <input type="date" id="annDateInput">
+    <button class="btn" id="annDateApply">Check this date</button>
+  </div>
+  <div class="mhint" id="annEffective"></div>
+  <div id="annToday"></div>
+  <div class="help" id="annNext" style="cursor:pointer"></div>
+  <div class="mrow"><button class="btn" id="annHubClose">Close</button></div>
+</div></div>
+
+<div id="annVeil"></div>
+<canvas id="annParticles"></canvas>
 
 <div id="lightbox"><img id="lightboxImg" alt=""></div>
 <div id="toast"></div>
@@ -1401,16 +1467,247 @@ function toast(msg){
   clearTimeout(toastT); toastT=setTimeout(()=>t.style.display="none", 5200);
 }
 
-/* ---------- anniversary engine hook (Phase 2) ---------- */
-/* Thin bridge from the app's live data to the pure engine in anniversary.js.
-   No cards/tab yet (Phase 3/4) — this just makes today's events computable/testable. */
-function annUserName(){ try{ return localStorage.getItem("urbexAtlasName") || gh.owner || "you"; }catch(e){ return "you"; } }
+/* ================= Anniversary UI (Phase 3) ================= */
 function annBaseName(id){ const s=BASE_BY_ID[id]; if(!s) return id; const e=user.baseEdits[id]; return (e&&e.n)||s.n; }
-function anniversaryEventsToday(dateStr){
-  if (!window.Anniversary) return [];
-  return window.Anniversary.computeEvents(user, dateStr||todayYMD(), {copy:window.ANNIVERSARY_COPY, userName:annUserName(), baseName:annBaseName});
+function escapeHtml(s){ return String(s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m])); }
+
+/* effective date: the device's date, or a date you pick to check against */
+let dateOverride=null;
+try { dateOverride = localStorage.getItem("urbexAtlasDateOverride")||null; } catch(e){}
+function effectiveToday(){ return dateOverride || todayYMD(); }
+function setDateOverride(v){
+  dateOverride = v || null;
+  try { v ? localStorage.setItem("urbexAtlasDateOverride", v) : localStorage.removeItem("urbexAtlasDateOverride"); } catch(e){}
 }
+
+/* device-local record state (counters + seen/opened) — never written to the synced JSON */
+const REC_KEY="urbexAtlasRecord.v1";
+let rec={ ghosts:{}, flowers:{}, seen:{}, opened:{} };
+try { const r=localStorage.getItem(REC_KEY); if(r) rec=Object.assign(rec, JSON.parse(r)); } catch(e){}
+let recT; function saveRec(){ clearTimeout(recT); recT=setTimeout(()=>{ try{ localStorage.setItem(REC_KEY, JSON.stringify(rec)); }catch(e){} }, 150); }
+
+function annOpts(){ return {copy:window.ANNIVERSARY_COPY, baseName:annBaseName}; }
+function anniversaryEventsToday(dateStr){ return window.Anniversary ? window.Anniversary.computeEvents(user, dateStr||effectiveToday(), annOpts()) : []; }
+function anniversaryUpcoming(dateStr){ return window.Anniversary ? window.Anniversary.upcomingEvents(user, dateStr||effectiveToday(), annOpts()) : []; }
 window.anniversaryEventsToday = anniversaryEventsToday;
+function annRank(e){ return (({milestone:3,numberEgg:2,generic:1})[e.tier]||0)*1000 + Math.min(e.years,999); }
+function mostSignificant(events){ return events.slice().sort((a,b)=>annRank(b)-annRank(a))[0]; }
+function eventKey(e){ return e.siteId+"|"+e.kind+"|"+e.years; }
+function flyToSite(siteId){
+  let m=pinMarkers[siteId]||baseMarkers[siteId], ll=null;
+  const p=user.pins.find(q=>q.id===siteId);
+  if(p) ll=[p.lat,p.lng]; else if(BASE_BY_ID[siteId]) ll=[BASE_BY_ID[siteId].lat,BASE_BY_ID[siteId].lng];
+  if(ll){ map.flyTo(ll, Math.max(map.getZoom(),13), {duration:.8}); if(m) setTimeout(()=>m.openPopup(), 850); }
+}
+
+/* ---- particle layer: one rAF loop, capped, canvas transforms only ---- */
+const annCanvas=document.getElementById("annParticles"), annCtx=annCanvas.getContext("2d");
+let particles=[], annRAF=null, pile={};
+const PARTICLE_CAP=420;
+const reduceMotion = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+function sizeCanvas(){ annCanvas.width=innerWidth; annCanvas.height=innerHeight; }
+function ensureLoop(){ if(!annRAF) annRAF=requestAnimationFrame(tickParticles); }
+function startParticles(){ annCanvas.classList.add("on"); sizeCanvas(); ensureLoop(); }
+function stopParticles(){ particles=[]; pile={}; if(annCtx) annCtx.clearRect(0,0,annCanvas.width,annCanvas.height); annCanvas.classList.remove("on"); if(annRAF){ cancelAnimationFrame(annRAF); annRAF=null; } }
+function cardFloorY(){ const c=document.querySelector(".anncard"); return c ? c.getBoundingClientRect().bottom-6 : innerHeight-40; }
+function tickParticles(){
+  annCtx.clearRect(0,0,annCanvas.width,annCanvas.height);
+  const floor=cardFloorY();
+  for (let i=particles.length-1;i>=0;i--){
+    const p=particles[i];
+    if (p.type==="ghost"){
+      p.y+=p.vy; p.x+=p.vx + (p.hat?Math.sin(p.y*0.04)*0.8:0); p.life-=0.008;
+      if (p.life<=0 || p.y<-40){ particles.splice(i,1); continue; }
+      annCtx.globalAlpha=Math.max(0,Math.min(1,p.life)); annCtx.font=p.size+"px system-ui"; annCtx.fillText(p.char,p.x,p.y);
+    } else if (p.type==="confetti"){
+      p.vy+=0.08; p.x+=p.vx; p.y+=p.vy; p.rot+=p.vr; p.life-=0.01;
+      if (p.y>innerHeight || p.life<=0){ particles.splice(i,1); continue; }
+      annCtx.globalAlpha=Math.max(0,p.life); annCtx.save(); annCtx.translate(p.x,p.y); annCtx.rotate(p.rot);
+      annCtx.fillStyle=p.color; annCtx.fillRect(-p.size/2,-p.size/2,p.size,p.size*0.6); annCtx.restore();
+    } else { /* petal */
+      if (!p.settled){
+        p.vy+=0.05; p.x+=p.vx; p.y+=p.vy; p.rot+=p.vr;
+        const bucket=Math.round(p.x/10), restY=floor-(pile[bucket]||0);
+        if (p.y>=restY){ p.y=restY; p.settled=true; pile[bucket]=(pile[bucket]||0)+3; }
+      }
+      annCtx.globalAlpha=1; annCtx.save(); annCtx.translate(p.x,p.y); annCtx.rotate(p.rot);
+      annCtx.fillStyle=p.color; annCtx.beginPath(); annCtx.ellipse(0,0,p.size,p.size*0.55,0,0,7); annCtx.fill(); annCtx.restore();
+    }
+  }
+  annCtx.globalAlpha=1;
+  if (annCanvas.classList.contains("on")) annRAF=requestAnimationFrame(tickParticles); else annRAF=null;
+}
+function sampleColors(imgEl){
+  try {
+    const c=document.createElement("canvas"); c.width=8; c.height=8;
+    const cx=c.getContext("2d"); cx.drawImage(imgEl,0,0,8,8);
+    const d=cx.getImageData(0,0,8,8).data, cols=[];
+    for (let i=0;i<d.length;i+=16){ if(d[i+3]>100) cols.push("rgb("+d[i]+","+d[i+1]+","+d[i+2]+")"); }
+    if (cols.length) return cols;
+  } catch(e){}
+  return ["#d9b443","#e7c65a","#c0392b","#2e7d32","#1565c0","#e67e22"];
+}
+function currentStripImg(){
+  const strip=document.querySelector("#annVeil .annstrip"); if(!strip) return null;
+  const imgs=[...strip.querySelectorAll("img")]; if(!imgs.length) return null;
+  const cx=strip.getBoundingClientRect().left+strip.clientWidth/2; let best=imgs[0], bd=1e9;
+  imgs.forEach(im=>{ const r=im.getBoundingClientRect(); const d=Math.abs((r.left+r.width/2)-cx); if(d<bd){bd=d;best=im;} });
+  return best;
+}
+function spawnGhosts(n, siteId){
+  rec.ghosts[siteId]=(rec.ghosts[siteId]||0)+n; updateCounter(siteId,"ghosts"); saveRec();
+  if (reduceMotion) return;
+  const room=PARTICLE_CAP-particles.length; n=Math.min(n, Math.max(0,room));
+  const c=document.querySelector(".anncard"); if(!c) return; const r=c.getBoundingClientRect();
+  const cols=sampleColors(currentStripImg());
+  for (let i=0;i<n;i++){
+    const hat=Math.random()<0.02;
+    particles.push({type:"ghost", x:r.left+Math.random()*r.width, y:r.bottom-24, vy:-(0.8+Math.random()*1.5), vx:(Math.random()-0.5)*(hat?2.4:0.7), life:1, size:18+Math.random()*14, char:hat?(Math.random()<0.5?"🎈":"🥳"):"👻", hat});
+  }
+  const cn=Math.min(n*3, PARTICLE_CAP-particles.length);
+  for (let i=0;i<cn;i++){
+    particles.push({type:"confetti", x:r.left+r.width/2+(Math.random()-0.5)*130, y:r.top+50, vx:(Math.random()-0.5)*4.5, vy:-(2+Math.random()*3.5), vr:(Math.random()-0.5)*0.3, rot:Math.random()*6, color:cols[i%cols.length], size:5+Math.random()*4, life:1});
+  }
+  ensureLoop();
+}
+function spawnPetals(n, siteId){
+  rec.flowers[siteId]=(rec.flowers[siteId]||0)+n; updateCounter(siteId,"flowers"); saveRec();
+  if (reduceMotion) return;
+  const room=PARTICLE_CAP-particles.length; n=Math.min(n, Math.max(0,room));
+  const c=document.querySelector(".anncard"); if(!c) return; const r=c.getBoundingClientRect();
+  const cols=["#c98a9b","#b56576","#d8a1ad","#a44a5c","#e0b3bd"];
+  for (let i=0;i<n;i++){
+    particles.push({type:"petal", x:r.left+Math.random()*r.width, y:r.top+60+Math.random()*30, vx:(Math.random()-0.5)*0.8, vy:0.5+Math.random(), vr:(Math.random()-0.5)*0.2, rot:Math.random()*6, color:cols[i%cols.length], size:5+Math.random()*3, settled:false});
+  }
+  ensureLoop();
+}
+
+/* ---- optional sound (default off) ---- */
+let annSoundOn=false, audioCtx=null;
+function annBlip(){
+  if (!annSoundOn) return;
+  try {
+    audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();
+    const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+    o.frequency.value=520+Math.random()*320; g.gain.value=0.04; o.connect(g); g.connect(audioCtx.destination);
+    o.start(); g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime+0.15); o.stop(audioCtx.currentTime+0.16);
+  } catch(e){}
+}
+
+/* ---- the card ---- */
+const annVeil=document.getElementById("annVeil");
+let cardEvent=null, cardClicks=0;
+function updateCounter(siteId, kind){
+  const c=document.getElementById("annCounterText"); if(!c||!cardEvent||cardEvent.siteId!==siteId) return;
+  if (kind==="ghosts"){ const n=rec.ghosts[siteId]||0; c.textContent=n?("you have released "+n.toLocaleString()+" ghost"+(n===1?"":"s")+" from this building"):""; }
+  else { const n=rec.flowers[siteId]||0; c.textContent=n?("you have left "+n.toLocaleString()+" flower"+(n===1?"":"s")+" here"):""; }
+}
+function annFooter(){
+  const up=anniversaryUpcoming()[0], d=document.createElement("div");
+  if (!up){ d.textContent="No anniversaries on the horizon. Go find somewhere new."; return d; }
+  const label=up.kind==="demolition"?"memorial":(up.years+(up.years===1?" year":" years"));
+  d.innerHTML="Next up: <b>"+escapeHtml(up.siteName)+"</b> · "+escapeHtml(label)+" · in "+up.daysOut+" day"+(up.daysOut===1?"":"s");
+  d.appendChild(el("div","annflyhint","tap card → fly there · tap here → what's next"));
+  return d;
+}
+function openAnniversaryCard(ev){
+  if (!ev) return;
+  cardEvent=ev; cardClicks=0;
+  rec.seen[eventKey(ev)]=true; rec.opened[eventKey(ev)]=true; saveRec(); updateAnnBadge();
+  const memorial=ev.kind==="demolition";
+  annVeil.innerHTML="";
+  const card=el("div","anncard"+(memorial?" memorial":""));
+  card.onclick=(e)=>{ if(e.target.closest(".annbtn,.annclose,.annsound,.annfoot")) return; const id=ev.siteId; closeAnnCard(); flyToSite(id); };
+  const close=el("button","annclose","×"); close.onclick=(e)=>{ e.stopPropagation(); closeAnnCard(); }; card.appendChild(close);
+  const head=el("div","annhead");
+  head.appendChild(el("span","annyears",(memorial?"In memoriam · ":"")+ev.years+(ev.years===1?" year":" years")));
+  head.appendChild(document.createTextNode(ev.line)); card.appendChild(head);
+  const photos=ev.photos||[];
+  if (photos.length){
+    const strip=el("div","annstrip");
+    const ordered = memorial ? photos.slice().reverse() : photos.slice();
+    ordered.forEach((ph,idx)=>{
+      const fig=document.createElement("figure");
+      const img=document.createElement("img"); img.crossOrigin="anonymous"; img.src=resolvePhoto(photoSrc(ph)); fig.appendChild(img);
+      if (memorial && idx===0){ fig.className="annlast"; fig.appendChild(el("figcaption",null,"The last time you saw this standing")); }
+      else if (photoDate(ph)){ fig.appendChild(el("figcaption",null,photoDate(ph))); }
+      strip.appendChild(fig);
+    });
+    card.appendChild(strip);
+  } else card.appendChild(el("div","annnophoto","No photos yet — add some in the pin editor."));
+  const act=el("div","annact");
+  const btn=el("button","annbtn", memorial?"💐":"🎂");
+  btn.onclick=(e)=>{ e.stopPropagation(); cardClicks++; annBlip();
+    if (memorial) spawnPetals(Math.min(2+Math.floor(cardClicks/6),12), ev.siteId);
+    else spawnGhosts(Math.min(1+Math.floor(cardClicks/8),25), ev.siteId);
+  };
+  act.appendChild(btn);
+  const counter=el("span","anncounter"); counter.id="annCounterText"; act.appendChild(counter);
+  const snd=el("button","annsound","🔇 sound"); snd.onclick=(e)=>{ e.stopPropagation(); annSoundOn=!annSoundOn; snd.textContent=(annSoundOn?"🔊":"🔇")+" sound"; }; act.appendChild(snd);
+  card.appendChild(act);
+  const foot=el("div","annfoot"); foot.appendChild(annFooter());
+  foot.onclick=()=>{ const up=anniversaryUpcoming()[0]; if(up){ const id=up.siteId; closeAnnCard(); flyToSite(id); } };
+  card.appendChild(foot);
+  annVeil.appendChild(card);
+  annVeil.classList.add("open");
+  updateCounter(ev.siteId, memorial?"flowers":"ghosts");
+  if (!reduceMotion) startParticles();
+}
+function closeAnnCard(){ annVeil.classList.remove("open"); annVeil.innerHTML=""; cardEvent=null; stopParticles(); }
+annVeil.addEventListener("click", e=>{ if(e.target===annVeil) closeAnnCard(); });
+window.addEventListener("resize", ()=>{ if(annCanvas.classList.contains("on")) sizeCanvas(); });
+
+/* ---- hub / date control ---- */
+const annHub=document.getElementById("annHub");
+function updateAnnBadge(){
+  const btn=document.getElementById("annBtn");
+  const unseen=anniversaryEventsToday().filter(e=>!rec.seen[eventKey(e)]).length;
+  btn.textContent="🎂 Anniversaries"+(unseen?" ("+unseen+")":"");
+}
+function openAnnHub(){
+  const custom=!!dateOverride;
+  document.getElementById("annModeDevice").checked=!custom;
+  document.getElementById("annModeCustom").checked=custom;
+  document.getElementById("annDateInput").value=dateOverride||todayYMD();
+  renderAnnHub(); annHub.classList.add("open");
+}
+function renderAnnHub(){
+  const eff=effectiveToday();
+  document.getElementById("annEffective").textContent="Checking against "+eff+(dateOverride?" (custom date)":" (your device)");
+  const today=anniversaryEventsToday(), wrap=document.getElementById("annToday"); wrap.innerHTML="";
+  if (today.length){
+    const lab=document.createElement("label"); lab.textContent="On this date"; wrap.appendChild(lab);
+    const list=el("div","annlist");
+    today.slice().sort((a,b)=>annRank(b)-annRank(a)).forEach(ev=>{
+      const row=el("div","annlistrow"+(ev.kind==="demolition"?" memo":"")), t=el("div");
+      t.appendChild(el("div","al-nm",ev.siteName));
+      t.appendChild(el("div","al-meta",(ev.kind==="demolition"?"Memorial · ":"")+ev.years+(ev.years===1?" year":" years")+" · "+ev.tier));
+      row.appendChild(t);
+      row.onclick=()=>{ annHub.classList.remove("open"); openAnniversaryCard(ev); };
+      list.appendChild(row);
+    });
+    wrap.appendChild(list);
+  } else wrap.innerHTML='<div class="help">No anniversary on '+eff+'.</div>';
+  const up=anniversaryUpcoming(), nextEl=document.getElementById("annNext");
+  if (up.length){
+    const u=up[0];
+    nextEl.innerHTML="Next up: <b>"+escapeHtml(u.siteName)+"</b> — "+(u.kind==="demolition"?"memorial":u.years+(u.years===1?" year":" years"))+" in "+u.daysOut+" day"+(u.daysOut===1?"":"s")+" ("+u.date+"). Tap to fly there.";
+    nextEl.onclick=()=>{ annHub.classList.remove("open"); flyToSite(u.siteId); };
+  } else { nextEl.innerHTML="No anniversaries yet. Add a first-visit or demolished date to a pin to start the clock."; nextEl.onclick=null; }
+}
+document.getElementById("annBtn").onclick=openAnnHub;
+document.getElementById("annHubClose").onclick=()=>annHub.classList.remove("open");
+annHub.addEventListener("click", e=>{ if(e.target===annHub) annHub.classList.remove("open"); });
+document.getElementById("annModeDevice").onchange=()=>{ setDateOverride(null); document.getElementById("annDateInput").value=todayYMD(); renderAnnHub(); updateAnnBadge(); };
+document.getElementById("annModeCustom").onchange=()=>{ setDateOverride(document.getElementById("annDateInput").value||todayYMD()); renderAnnHub(); updateAnnBadge(); };
+document.getElementById("annDateApply").onclick=()=>{
+  const v=document.getElementById("annDateInput").value;
+  if (v){ document.getElementById("annModeCustom").checked=true; setDateOverride(v); }
+  renderAnnHub(); updateAnnBadge();
+  const t=anniversaryEventsToday();
+  if (t.length){ annHub.classList.remove("open"); openAnniversaryCard(mostSignificant(t)); }
+  else toast("No anniversary on "+effectiveToday()+".");
+};
 
 /* ---------- offline support (service worker caches viewed map tiles + app shell) ---------- */
 if ("serviceWorker" in navigator && (location.protocol==="https:" || location.hostname==="localhost" || location.hostname==="127.0.0.1")){
@@ -1421,6 +1718,14 @@ loadLocal();
 refreshAll();
 if (ghConfigured()) pullFromGitHub(true);
 if (!storageOK) toast("Browser storage unavailable in this viewer — download/host the file for persistence, or use GitHub sync.");
+
+/* At most one card fires on launch — today's most significant unseen one. The rest wait in the hub. */
+updateAnnBadge();
+(function launchAnnCard(){
+  const today = anniversaryEventsToday();
+  const unseen = today.filter(e=>!rec.seen[eventKey(e)]);
+  if (unseen.length) openAnniversaryCard(mostSignificant(unseen));
+})();
 </script>
 </body>
 </html>
