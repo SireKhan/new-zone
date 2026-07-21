@@ -201,8 +201,32 @@ stored in `urbexAtlasDateOverride` (device-local) and drives `effectiveToday()`,
 which every anniversary computation uses. The hub lists that date's
 anniversaries (tap to open the card) and the next upcoming one.
 
-_The Record tab (Phase 4) is not yet implemented; the hub is the interim entry
-point._
+## The Record tab (Phase 4)
+
+The 🎂 **Record** button opens a full-screen tab (over the map) with a
+segmented control — **Upcoming · Passed · Achievements** — defaulting to
+whichever has unseen items (Passed if any are unseen, else Upcoming). The
+device/custom **date control** lives at the top of this tab.
+
+- **Upcoming** — `upcomingEvents`, nearest first. Thin rows: thumbnail, site
+  name, milestone / "Memorial", days out, date. Demolition rows muted. Tapping
+  flies the map to the pin.
+- **Passed** — `pastEvents` (every past occurrence, one per year since the
+  anchor), reverse-chronological. **Unopened** rows carry a dot. Tapping opens
+  the full card. Missed anniversaries never expire — a years-old one still
+  opens in full.
+- **Achievements** — placeholder scaffold (out of scope for now).
+
+State is device-local in `urbexAtlasRecord.v1`: `seen` (surfaced in the list
+or auto-opened — clears the badge), `opened` (card actually opened — clears the
+row dot), plus the ghost/flower counters. The header button is **badged with a
+single count of unseen passed items**; surfacing them in the Passed list marks
+them seen and clears it. At most one card auto-opens on launch; the Record tab
+never auto-plays a queue.
+
+Empty states: with no dates, "add a first-visit or demolished date… to start
+the clock"; with dates but nothing passed yet, "Your first will be {date}, with
+{location}."
 
 ## Adding copy lines
 

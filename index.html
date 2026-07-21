@@ -143,6 +143,28 @@
   .annlistrow .al-meta{font:10px ui-monospace,monospace;color:#777;text-transform:uppercase;letter-spacing:.05em}
   .annlistrow.memo .al-meta{color:#a0512e}
   .annbadge{display:inline-block;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#c62828;color:#fff;font:10px/16px ui-monospace,monospace;text-align:center;margin-left:5px;vertical-align:1px}
+  /* ---------- Record tab (Phase 4) ---------- */
+  #recordView{position:fixed;inset:0;background:var(--panel);color:var(--panel-ink);z-index:1800;display:none;flex-direction:column}
+  #recordView.open{display:flex}
+  .rec-top{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--hair);flex:none}
+  .rec-title{font:700 17px Georgia,serif;flex:1;text-align:center}
+  .rec-date{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:9px 14px;border-bottom:1px solid var(--hair);flex:none;font:11px ui-monospace,Consolas,monospace;color:#9aa3ab}
+  .rec-date label{display:inline-flex;align-items:center;gap:5px;text-transform:none;letter-spacing:0}
+  .rec-date input[type=date]{background:#171c21;border:1px solid var(--hair);color:var(--panel-ink);border-radius:4px;padding:4px 6px;font:12px ui-monospace,monospace}
+  #recEff{color:#7fd4c1}
+  .rec-seg{display:flex;padding:10px 14px 0;gap:6px;flex:none}
+  .rseg{flex:1;padding:9px 6px;background:#2c343c;border:1px solid var(--hair);color:#aeb6bd;border-radius:7px 7px 0 0;cursor:pointer;font:11px ui-monospace,Consolas,monospace;letter-spacing:.04em;text-transform:uppercase}
+  .rseg.on{background:#155e63;border-color:#1d7a80;color:#fff}
+  .rec-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:4px 0 40px}
+  .rrow{display:flex;align-items:center;gap:11px;padding:10px 14px;border-bottom:1px solid #2b3238;cursor:pointer}
+  .rrow:hover{background:#2a323a}
+  .rrow .rthumb{width:46px;height:46px;flex:none;border-radius:6px;object-fit:cover;background:#fff;border:1px solid var(--hair)}
+  .rrow .rmain{flex:1;min-width:0}
+  .rrow .rnm{font:700 14px Georgia,serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rrow .rmeta{font:10px ui-monospace,Consolas,monospace;color:#8b949c;text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
+  .rrow.memo .rmeta{color:#c98a6a}
+  .rrow .rdot{width:9px;height:9px;border-radius:50%;background:#1a73e8;flex:none}
+  .rec-empty{padding:30px 24px;text-align:center;font:14px/1.65 Georgia,serif;color:#9aa3ab}
   .veil{position:fixed;inset:0;background:rgba(15,18,22,.62);display:none;align-items:center;justify-content:center;z-index:2000;padding:16px}
   .veil.open{display:flex}
   .modal{background:var(--paper);width:100%;max-width:430px;max-height:92vh;overflow-y:auto;border-radius:5px;padding:18px 20px;border-top:4px solid #155e63}
@@ -222,7 +244,7 @@
     <button class="btn" id="dragBtn">Drag pins: off</button>
     <button class="btn" id="locBtn">&#128205; Near me</button>
     <button class="btn" id="tripBtn">&#129517; Trip</button>
-    <button class="btn" id="annBtn">&#127874; Anniversaries</button>
+    <button class="btn" id="annBtn">&#127874; Record</button>
     <button class="btn gh" id="syncBtn">Sync to GitHub</button>
     <button class="btn" id="ghBtn">GitHub &#9881;</button>
     <button class="btn" id="exportBtn">Export</button>
@@ -343,23 +365,26 @@
   </div>
 </div></div>
 
-<div class="veil" id="annHub"><div class="modal">
-  <h3>Anniversaries</h3>
-  <div class="mhint" id="annHubHint">what today looks like on the map</div>
-  <label style="margin-top:4px">Date the site checks against</label>
-  <div class="annrow">
-    <label><input type="radio" name="annDateMode" id="annModeDevice" value="device"> Use my device's date</label>
-    <label><input type="radio" name="annDateMode" id="annModeCustom" value="custom"> Use a date I pick</label>
+<div id="recordView">
+  <div class="rec-top">
+    <button class="btn" id="recBack">&#8249; Map</button>
+    <span class="rec-title">&#127874; Record</span>
+    <span style="width:64px"></span>
   </div>
-  <div class="annrow">
-    <input type="date" id="annDateInput">
-    <button class="btn" id="annDateApply">Check this date</button>
+  <div class="rec-date">
+    <label><input type="radio" name="recDate" id="recModeDevice"> Device date</label>
+    <label><input type="radio" name="recDate" id="recModeCustom"> Custom:</label>
+    <input type="date" id="recDateInput">
+    <button class="btn" id="recDateApply">Check</button>
+    <span id="recEff"></span>
   </div>
-  <div class="mhint" id="annEffective"></div>
-  <div id="annToday"></div>
-  <div class="help" id="annNext" style="cursor:pointer"></div>
-  <div class="mrow"><button class="btn" id="annHubClose">Close</button></div>
-</div></div>
+  <div class="rec-seg">
+    <button class="rseg" data-seg="upcoming">Upcoming</button>
+    <button class="rseg" data-seg="passed">Passed <span class="annbadge" id="recPassedBadge" style="display:none"></span></button>
+    <button class="rseg" data-seg="achieve">Achievements</button>
+  </div>
+  <div class="rec-body" id="recBody"></div>
+</div>
 
 <div id="annVeil"></div>
 <canvas id="annParticles"></canvas>
@@ -1492,6 +1517,7 @@ function annRank(e){ return (({milestone:3,numberEgg:2,generic:1})[e.tier]||0)*1
 function mostSignificant(events){ return events.slice().sort((a,b)=>annRank(b)-annRank(a))[0]; }
 function eventKey(e){ return e.siteId+"|"+e.kind+"|"+e.years; }
 function flyToSite(siteId){
+  if (typeof recordView!=="undefined" && recordView.classList.contains("open")) recordView.classList.remove("open");
   let m=pinMarkers[siteId]||baseMarkers[siteId], ll=null;
   const p=user.pins.find(q=>q.id===siteId);
   if(p) ll=[p.lat,p.lng]; else if(BASE_BY_ID[siteId]) ll=[BASE_BY_ID[siteId].lat,BASE_BY_ID[siteId].lng];
@@ -1673,60 +1699,83 @@ function openAnniversaryCard(ev){
   updateCounter(ev.siteId, memorial?"flowers":"ghosts");
   if (!reduceMotion) startParticles();
 }
-function closeAnnCard(){ annVeil.classList.remove("open"); annVeil.innerHTML=""; cardEvent=null; stopParticles(); }
+function closeAnnCard(){ annVeil.classList.remove("open"); annVeil.innerHTML=""; cardEvent=null; stopParticles(); if(recordView.classList.contains("open")) renderRecord(); }
 annVeil.addEventListener("click", e=>{ if(e.target===annVeil) closeAnnCard(); });
 window.addEventListener("resize", ()=>{ if(annCanvas.classList.contains("on")) sizeCanvas(); });
 
-/* ---- hub / date control ---- */
-const annHub=document.getElementById("annHub");
+/* ================= Record tab (Phase 4) ================= */
+const recordView=document.getElementById("recordView");
+let recSeg="upcoming";
+function anniversaryPassed(){ return window.Anniversary ? window.Anniversary.pastEvents(user, effectiveToday(), annOpts()) : []; }
+function unseenPassed(){ return anniversaryPassed().filter(e=>!rec.seen[eventKey(e)]); }
+function thumbSrc(ev){ return (ev.photos&&ev.photos.length) ? resolvePhoto(photoSrc(ev.photos[0])) : FALLBACK_IMG; }
+function metaYears(ev){ return ev.kind==="demolition" ? "Memorial" : (ev.years+(ev.years===1?" year":" years")); }
 function updateAnnBadge(){
-  const btn=document.getElementById("annBtn");
-  const unseen=anniversaryEventsToday().filter(e=>!rec.seen[eventKey(e)]).length;
-  btn.textContent="🎂 Anniversaries"+(unseen?" ("+unseen+")":"");
+  const n=unseenPassed().length;
+  document.getElementById("annBtn").textContent="🎂 Record"+(n?" ("+n+")":"");
 }
-function openAnnHub(){
+function openRecord(){
+  recSeg = unseenPassed().length ? "passed" : (anniversaryUpcoming().length ? "upcoming" : "passed");
+  syncRecDate(); recordView.classList.add("open"); renderRecord();
+}
+function closeRecord(){ recordView.classList.remove("open"); }
+function syncRecDate(){
   const custom=!!dateOverride;
-  document.getElementById("annModeDevice").checked=!custom;
-  document.getElementById("annModeCustom").checked=custom;
-  document.getElementById("annDateInput").value=dateOverride||todayYMD();
-  renderAnnHub(); annHub.classList.add("open");
+  document.getElementById("recModeDevice").checked=!custom;
+  document.getElementById("recModeCustom").checked=custom;
+  document.getElementById("recDateInput").value=dateOverride||todayYMD();
+  document.getElementById("recEff").textContent="→ "+effectiveToday()+(dateOverride?" (custom)":" (device)");
 }
-function renderAnnHub(){
-  const eff=effectiveToday();
-  document.getElementById("annEffective").textContent="Checking against "+eff+(dateOverride?" (custom date)":" (your device)");
-  const today=anniversaryEventsToday(), wrap=document.getElementById("annToday"); wrap.innerHTML="";
-  if (today.length){
-    const lab=document.createElement("label"); lab.textContent="On this date"; wrap.appendChild(lab);
-    const list=el("div","annlist");
-    today.slice().sort((a,b)=>annRank(b)-annRank(a)).forEach(ev=>{
-      const row=el("div","annlistrow"+(ev.kind==="demolition"?" memo":"")), t=el("div");
-      t.appendChild(el("div","al-nm",ev.siteName));
-      t.appendChild(el("div","al-meta",(ev.kind==="demolition"?"Memorial · ":"")+ev.years+(ev.years===1?" year":" years")+" · "+ev.tier));
-      row.appendChild(t);
-      row.onclick=()=>{ annHub.classList.remove("open"); openAnniversaryCard(ev); };
-      list.appendChild(row);
+function recEmpty(txt){ return el("div","rec-empty", txt); }
+function recRow(ev, metaText, opened){
+  const row=el("div","rrow"+(ev.kind==="demolition"?" memo":""));
+  const img=document.createElement("img"); img.className="rthumb"; img.src=thumbSrc(ev); img.onerror=()=>{img.src=FALLBACK_IMG;}; row.appendChild(img);
+  const main=el("div","rmain"); main.appendChild(el("div","rnm",ev.siteName)); main.appendChild(el("div","rmeta",metaText)); row.appendChild(main);
+  if (opened===false){ const d=el("div","rdot"); d.title="Unopened"; row.appendChild(d); }
+  return row;
+}
+function renderRecord(){
+  [...document.querySelectorAll(".rseg")].forEach(b=>b.classList.toggle("on", b.dataset.seg===recSeg));
+  const body=document.getElementById("recBody"); body.innerHTML="";
+  if (recSeg==="upcoming"){
+    const up=anniversaryUpcoming();
+    if (!up.length) body.appendChild(recEmpty(anniversaryPassed().length ? "Nothing upcoming right now." : "No anniversaries yet — add a first-visit or demolished date to a pin, and your first one will appear here."));
+    else up.forEach(ev=>{
+      const row=recRow(ev, metaYears(ev)+" · in "+ev.daysOut+" day"+(ev.daysOut===1?"":"s")+" · "+ev.date);
+      row.onclick=()=>{ closeRecord(); flyToSite(ev.siteId); };
+      body.appendChild(row);
     });
-    wrap.appendChild(list);
-  } else wrap.innerHTML='<div class="help">No anniversary on '+eff+'.</div>';
-  const up=anniversaryUpcoming(), nextEl=document.getElementById("annNext");
-  if (up.length){
-    const u=up[0];
-    nextEl.innerHTML="Next up: <b>"+escapeHtml(u.siteName)+"</b> — "+(u.kind==="demolition"?"memorial":u.years+(u.years===1?" year":" years"))+" in "+u.daysOut+" day"+(u.daysOut===1?"":"s")+" ("+u.date+"). Tap to fly there.";
-    nextEl.onclick=()=>{ annHub.classList.remove("open"); flyToSite(u.siteId); };
-  } else { nextEl.innerHTML="No anniversaries yet. Add a first-visit or demolished date to a pin to start the clock."; nextEl.onclick=null; }
+  } else if (recSeg==="passed"){
+    const past=anniversaryPassed();
+    if (!past.length){
+      const u=anniversaryUpcoming()[0];
+      body.appendChild(recEmpty(u ? ("No anniversaries yet. Your first will be "+u.date+", with "+u.siteName+".") : "No anniversaries yet. Add a first-visit or demolished date to a pin to start the clock."));
+    } else {
+      past.forEach(ev=>{
+        const key=eventKey(ev);
+        const row=recRow(ev, metaYears(ev)+" · "+ev.date, !!rec.opened[key]);
+        row.onclick=()=>openAnniversaryCard(ev);
+        body.appendChild(row);
+        if (!rec.seen[key]) rec.seen[key]=true;   // surfacing it in the list counts as "seen" (clears the badge)
+      });
+      saveRec();
+    }
+  } else {
+    body.appendChild(recEmpty("Achievements are coming soon — badges for milestones reached, sites documented, ghosts released, flowers left."));
+  }
+  const pb=document.getElementById("recPassedBadge"), n=unseenPassed().length;
+  pb.textContent=n||""; pb.style.display=n?"":"none";
+  updateAnnBadge();
 }
-document.getElementById("annBtn").onclick=openAnnHub;
-document.getElementById("annHubClose").onclick=()=>annHub.classList.remove("open");
-annHub.addEventListener("click", e=>{ if(e.target===annHub) annHub.classList.remove("open"); });
-document.getElementById("annModeDevice").onchange=()=>{ setDateOverride(null); document.getElementById("annDateInput").value=todayYMD(); renderAnnHub(); updateAnnBadge(); };
-document.getElementById("annModeCustom").onchange=()=>{ setDateOverride(document.getElementById("annDateInput").value||todayYMD()); renderAnnHub(); updateAnnBadge(); };
-document.getElementById("annDateApply").onclick=()=>{
-  const v=document.getElementById("annDateInput").value;
-  if (v){ document.getElementById("annModeCustom").checked=true; setDateOverride(v); }
-  renderAnnHub(); updateAnnBadge();
-  const t=anniversaryEventsToday();
-  if (t.length){ annHub.classList.remove("open"); openAnniversaryCard(mostSignificant(t)); }
-  else toast("No anniversary on "+effectiveToday()+".");
+document.getElementById("annBtn").onclick=openRecord;
+document.getElementById("recBack").onclick=closeRecord;
+[...document.querySelectorAll(".rseg")].forEach(b=> b.onclick=()=>{ recSeg=b.dataset.seg; renderRecord(); });
+document.getElementById("recModeDevice").onchange=()=>{ setDateOverride(null); syncRecDate(); renderRecord(); };
+document.getElementById("recModeCustom").onchange=()=>{ setDateOverride(document.getElementById("recDateInput").value||todayYMD()); syncRecDate(); renderRecord(); };
+document.getElementById("recDateApply").onclick=()=>{
+  const v=document.getElementById("recDateInput").value;
+  if (v){ document.getElementById("recModeCustom").checked=true; setDateOverride(v); }
+  syncRecDate(); renderRecord();
 };
 
 /* ---------- offline support (service worker caches viewed map tiles + app shell) ---------- */
