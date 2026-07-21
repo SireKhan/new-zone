@@ -152,6 +152,33 @@
     list.sort(function(a,b){ return a.daysOut - b.daysOut || (a.kind < b.kind ? -1 : 1); });
     return list;
   }
+  // Every past anniversary occurrence (one per year since the anchor), on/before todayStr.
+  // Reverse chronological. Missed anniversaries never expire — they all appear here.
+  function pastEvents(user, todayStr, opts){
+    opts = opts || {};
+    var copy = opts.copy || (typeof window !== "undefined" && window.ANNIVERSARY_COPY) || {};
+    var t = parts(todayStr), list = [];
+    if (!user || !t) return list;
+    sitesOf(user, opts.baseName).forEach(function(entry){
+      [["visit","firstVisit"], ["demolition","demolishedDate"]].forEach(function(pair){
+        var anchor = entry.site[pair[1]]; if (!anchor) return;
+        var a = parts(anchor); if (!a || a.m == null) return;
+        var by = builtYear(entry.site.built);
+        for (var y = a.y + 1; y <= t.y; y++){
+          var occ = occurrenceInYear(anchor, y);
+          if (dayNum(occ) > dayNum(todayStr)) continue;   // this year's occurrence hasn't happened yet
+          var years = y - a.y;
+          var ctx = { location: entry.name, years: years, date: anchor, user: "You",
+            building_age: (by != null) ? (y - by) : null };
+          var tl = tierAndLine(pair[0], years, entry.id, copy);
+          list.push({ siteId: entry.id, siteName: entry.name, kind: pair[0], years: years,
+            anchorDate: anchor, date: occ, tier: tl.tier, line: format(tl.line, ctx), photos: selectPhotos(entry.site.photos) });
+        }
+      });
+    });
+    list.sort(function(a,b){ return dayNum(b.date) - dayNum(a.date) || (a.kind < b.kind ? -1 : 1); });
+    return list;
+  }
 
   function sitesOf(user, baseName){
     var out = [];
@@ -195,9 +222,9 @@
   }
 
   var API = {
-    computeEvents: computeEvents, upcomingEvents: upcomingEvents, nextOccurrence: nextOccurrence,
-    format: format, firesToday: firesToday, yearsBetween: yearsBetween, isMilestone: isMilestone,
-    hash: hash, dayNum: dayNum, selectPhotos: selectPhotos, tierAndLine: tierAndLine
+    computeEvents: computeEvents, upcomingEvents: upcomingEvents, pastEvents: pastEvents,
+    nextOccurrence: nextOccurrence, format: format, firesToday: firesToday, yearsBetween: yearsBetween,
+    isMilestone: isMilestone, hash: hash, dayNum: dayNum, selectPhotos: selectPhotos, tierAndLine: tierAndLine
   };
   if (typeof window !== "undefined") window.Anniversary = API;
   if (typeof module !== "undefined" && module.exports) module.exports = API;
