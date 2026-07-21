@@ -176,13 +176,17 @@
   <div class="mhint" id="mHint"></div>
   <div id="mNameRow"><label>Name</label><input type="text" id="mName" placeholder="e.g. Mystery powerhouse off Rt 25"></div>
   <div id="mCatRow"><label>Status</label><select id="mCat"></select></div>
-  <label>Tags <span style="text-transform:none;letter-spacing:0">(comma-separated — used by the tag filter)</span></label>
-  <input type="text" id="mTags" placeholder="visited, tunnel-system, email-sent">
-  <label>Notes</label>
+  <div id="mTagsRow">
+    <label>Tags <span style="text-transform:none;letter-spacing:0">(comma-separated — used by the tag filter)</span></label>
+    <input type="text" id="mTags" placeholder="visited, tunnel-system, email-sent">
+  </div>
+  <label id="mNoteLabel">Notes</label>
   <textarea id="mNote" placeholder="Access status, owner contact, hazards, shot list&hellip;"></textarea>
-  <label>Photos</label>
-  <input type="file" id="mPhotos" accept="image/*" multiple>
-  <div class="mthumbs" id="mThumbs"></div>
+  <div id="mPhotoRow">
+    <label>Photos</label>
+    <input type="file" id="mPhotos" accept="image/*" multiple>
+    <div class="mthumbs" id="mThumbs"></div>
+  </div>
   <div class="mrow">
     <button class="btn" id="mCancel">Cancel</button>
     <button class="btn primary" id="mSave">Save</button>
@@ -260,13 +264,13 @@ const GH_KEY = "urbexAtlasGH.v1";
 
 /* ---------- state & persistence ---------- */
 let storageOK = true;
-let user = { version:1, pins:[], extras:{}, hiddenBase:[], baseMoves:{}, cats:{} };
+let user = { version:1, pins:[], extras:{}, hiddenBase:[], baseMoves:{}, baseEdits:{}, cats:{} };
 let gh = { owner:"", repo:"", branch:"main", token:"" };
 
 function loadLocal(){
   try {
     const raw = localStorage.getItem(STORE_KEY);
-    if (raw) user = Object.assign({version:1,pins:[],extras:{},hiddenBase:[],baseMoves:{},cats:{}}, JSON.parse(raw));
+    if (raw) user = Object.assign({version:1,pins:[],extras:{},hiddenBase:[],baseMoves:{},baseEdits:{},cats:{}}, JSON.parse(raw));
     const g = localStorage.getItem(GH_KEY);
     if (g) gh = Object.assign(gh, JSON.parse(g));
   } catch(e){ storageOK = false; }
@@ -295,6 +299,7 @@ function mergeUser(incoming){
   user.extras = Object.assign({}, user.extras, incoming.extras||{});
   user.hiddenBase = [...new Set([...(user.hiddenBase||[]), ...(incoming.hiddenBase||[])])];
   user.baseMoves = Object.assign({}, user.baseMoves, incoming.baseMoves||{});
+  user.baseEdits = Object.assign({}, user.baseEdits, incoming.baseEdits||{});
   if (incoming.cats && Object.keys(incoming.cats).length) user.cats = Object.assign({}, user.cats, incoming.cats);
 }
 
@@ -421,6 +426,14 @@ function applyBaseMoves(){
     if (baseMarkers[id]) baseMarkers[id].setLatLng(ll);
   }
 }
+function applyBaseEdits(){
+  for (const [id, e] of Object.entries(user.baseEdits||{})){
+    const s = BASE_BY_ID[id]; if (!s || !e) continue;
+    if (e.n!==undefined) s.n = e.n;
+    if (e.c!==undefined) s.c = e.c;
+    if (e.d!==undefined) s.d = e.d;
+  }
+}
 function applyBaseCats(){
   BASE.forEach(s=>{ if (baseMarkers[s.id]) baseMarkers[s.id].setIcon(baseIcon(s)); });
 }
@@ -478,6 +491,9 @@ function basePopup(s){
   }
   root.appendChild(el("div","pp-region", s.r+" · "+s.lat.toFixed(4)+", "+s.lng.toFixed(4)));
   const act = el("div","pp-actions");
+  const ed = el("button","pbtn","Edit location");
+  ed.onclick = ()=> openModal({mode:"editBase", baseId:s.id});
+  act.appendChild(ed);
   const b = el("button","pbtn", (x.note||(x.photos&&x.photos.length)?"Edit my notes / photos":"+ Add notes / photos"));
   b.onclick = ()=> openModal({mode:"extra", siteId:s.id, siteName:s.n});
   const rm = el("button","pbtn danger","Remove pin");
@@ -724,7 +740,7 @@ function render(){
   rb.style.display = user.hiddenBase.length ? "" : "none";
   rb.textContent = "Restore "+user.hiddenBase.length+" removed pin"+(user.hiddenBase.length===1?"":"s");
 }
-function refreshAll(){ applyCats(); applyBaseMoves(); applyBaseCats(); rebuildPinMarkers(); rebuildCatSelect(); renderCatChips(); renderTagChips(); render(); updateStorageBar(); }
+function refreshAll(){ applyCats(); applyBaseMoves(); applyBaseEdits(); applyBaseCats(); rebuildPinMarkers(); rebuildCatSelect(); renderCatChips(); renderTagChips(); render(); updateStorageBar(); }
 
 /* ---------- drag toggle ---------- */
 const dragBtn=document.getElementById("dragBtn");
@@ -935,7 +951,10 @@ function openModal(ctx){
   modalCtx=ctx; modalPhotos=[]; modalMoveTo=null;
   const title=document.getElementById("mTitle"), hint=document.getElementById("mHint");
   const nameRow=document.getElementById("mNameRow"), catRow=document.getElementById("mCatRow");
+  const tagsRow=document.getElementById("mTagsRow"), photoRow=document.getElementById("mPhotoRow");
+  const noteLabel=document.getElementById("mNoteLabel");
   document.getElementById("mPhotos").value="";
+  tagsRow.style.display=""; photoRow.style.display=""; noteLabel.textContent="Notes";
   if (ctx.mode==="newPin"){
     title.textContent="Add pin"; hint.textContent=pendingLatLng.lat.toFixed(4)+", "+pendingLatLng.lng.toFixed(4);
     nameRow.style.display=""; catRow.style.display="";
@@ -949,6 +968,13 @@ function openModal(ctx){
     document.getElementById("mTags").value=(p.tags||[]).join(", ");
     document.getElementById("mNote").value=p.d||"";
     modalPhotos=(p.photos||[]).slice();
+  } else if (ctx.mode==="editBase"){
+    const s=BASE_BY_ID[ctx.baseId];
+    title.textContent="Edit location"; hint.textContent=s.r+" · "+s.lat.toFixed(4)+", "+s.lng.toFixed(4);
+    nameRow.style.display=""; catRow.style.display="";
+    tagsRow.style.display="none"; photoRow.style.display="none"; noteLabel.textContent="Description";
+    document.getElementById("mName").value=s.n; catSel.value=resolveCat(s.c);
+    document.getElementById("mNote").value=s.d||"";
   } else {
     const x=user.extras[ctx.siteId]||{};
     title.textContent="Your notes — "+ctx.siteName; hint.textContent="attached to the surveyed site";
@@ -1071,6 +1097,11 @@ document.getElementById("mSave").onclick=()=>{
     const p=user.pins.find(q=>q.id===modalCtx.pinId);
     p.n=document.getElementById("mName").value.trim()||p.n; p.c=catSel.value; p.tags=tags; p.d=note; p.photos=modalPhotos;
     if (modalMoveTo){ p.lat=modalMoveTo.lat; p.lng=modalMoveTo.lng; }
+  } else if (modalCtx.mode==="editBase"){
+    const s=BASE_BY_ID[modalCtx.baseId];
+    const name=document.getElementById("mName").value.trim()||s.n;
+    s.n=name; s.c=catSel.value; s.d=note;
+    user.baseEdits[modalCtx.baseId]={n:name, c:catSel.value, d:note};
   } else {
     if (!note && !tags.length && !modalPhotos.length) delete user.extras[modalCtx.siteId];
     else user.extras[modalCtx.siteId]={note,tags,photos:modalPhotos};
