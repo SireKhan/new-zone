@@ -42,7 +42,14 @@
   .baseDot{border-radius:50%;border:1.5px solid #1d232a;box-shadow:0 1px 2px rgba(0,0,0,.35)}
   .leaflet-marker-draggable .baseDot{border-color:#fff;box-shadow:0 0 0 2px #1d232a,0 1px 4px rgba(0,0,0,.5);cursor:grab}
   .chip.notag{border-style:dashed}
+  .chip.neutral{border-style:dashed}
   .chip.editT{color:#7fd4c1;border-color:#1d7a80}
+  .btn.danger{background:#5a2020;border-color:#c62828;color:#ffd7d7}
+  .btn.danger:hover{background:#c62828;color:#fff}
+  .modal input[type=color]{width:52px;height:34px;padding:2px;border:1px solid #b9b4a8;border-radius:3px;background:#fff;cursor:pointer;vertical-align:middle}
+  .catPrev{display:inline-flex;align-items:center;gap:6px;font:12px ui-monospace,Consolas,monospace;padding:3px 10px;border:1px solid #b9b4a8;border-radius:20px;background:#fff}
+  .catPrev .dot{width:9px;height:9px;border-radius:50%}
+  .mrow.split{justify-content:space-between}
   .item .dist{font:10px ui-monospace,Consolas,monospace;color:#7fd4c1;margin-left:6px}
   .meDot{width:16px;height:16px;border-radius:50%;background:#1a73e8;border:3px solid #fff;box-shadow:0 0 0 2px rgba(26,115,232,.35),0 1px 4px rgba(0,0,0,.4)}
   .tnum{width:22px;height:22px;border-radius:50%;background:#1565c0;color:#fff;font:11px/22px ui-monospace,Consolas,monospace;text-align:center;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.45)}
@@ -202,32 +209,64 @@
   </div>
 </div></div>
 
+<div class="veil" id="catVeil"><div class="modal">
+  <h3 id="catTitle">Edit status</h3>
+  <div class="mhint">rename, recolor, or delete this status</div>
+  <label>Name</label><input type="text" id="catName" placeholder="e.g. Scouted">
+  <label>Color</label>
+  <div style="display:flex;gap:12px;align-items:center">
+    <input type="color" id="catColor">
+    <span class="catPrev" id="catPreview"><span class="dot"></span><span id="catPreviewLbl">Preview</span></span>
+  </div>
+  <div class="help" id="catUsage"></div>
+  <div class="mrow split">
+    <button class="btn danger" id="catDelete">Delete status</button>
+    <span style="display:flex;gap:8px">
+      <button class="btn" id="catCancel">Cancel</button>
+      <button class="btn primary" id="catSave">Save</button>
+    </span>
+  </div>
+</div></div>
+
 <div id="lightbox"><img id="lightboxImg" alt=""></div>
 <div id="toast"></div>
 
 <script>
 const BASE = [{"id": "b0", "n": "Holmesburg Prison", "lat": 40.043, "lng": -75.0246, "c": "ask", "r": "Eastern PA", "d": "City-owned, closed 1995. Warmest permission prospect in the region — heavy film precedent. Pathway: Greater Philadelphia Film Office / Phila. Dept. of Prisons."}, {"id": "b1", "n": "Budd Company Plant", "lat": 40.0176, "lng": -75.1583, "c": "ask", "r": "Eastern PA", "d": "~1.8M sq ft, Nicetown-Tioga. Time-sensitive: active redevelopment (Plymouth Group). Offer documentation of the 'before' state."}, {"id": "b2", "n": "SCI Graterford", "lat": 40.24, "lng": -75.447, "c": "ask", "r": "Eastern PA", "d": "Closed state prison with film/training precedent. Pathway: PA DOC."}, {"id": "b3", "n": "Hahnemann Hospital Towers", "lat": 39.9575, "lng": -75.163, "c": "caution", "r": "Eastern PA", "d": "Documented friable asbestos; bankruptcy ownership in flux. Respirator-mandatory even with permission."}, {"id": "b4", "n": "Crozer-Chester Medical Center", "lat": 39.8567, "lng": -75.3714, "c": "ask", "r": "Eastern PA", "d": "Time-sensitive: Chariot Allaire redevelopment. Asbestos flagged."}, {"id": "b5", "n": "Dixie Cup Factory", "lat": 40.689, "lng": -75.244, "c": "ask", "r": "Eastern PA", "d": "Wilson/Easton brownfield — 'nearly impossible to remediate.' Respirator-mandatory; structurally suspect."}, {"id": "b6", "n": "Embreeville State Hospital", "lat": 39.936, "lng": -75.738, "c": "caution", "r": "Eastern PA", "d": "Being demolished; damaged asbestos documented. Window closing."}, {"id": "b7", "n": "Harrisburg State Hospital", "lat": 40.2896, "lng": -76.8622, "c": "legal", "r": "Eastern PA", "d": "State-owned campus, tourable via the historical association."}, {"id": "b8", "n": "SCI Retreat", "lat": 41.185, "lng": -76.065, "c": "ask", "r": "Eastern PA", "d": "264-acre closed prison, single river-bridge access. Pathway: PA DOC + Luzerne County (Rep. Kaufer champions reuse)."}, {"id": "b9", "n": "White Haven Center", "lat": 41.058, "lng": -75.782, "c": "ask", "r": "Eastern PA", "d": "23-building mothballed campus in excellent condition, heading to market. Pathway: DGS Bureau of Real Estate."}, {"id": "b10", "n": "Richmond Generating Station", "lat": 39.9857, "lng": -75.0952, "c": "ask", "r": "Eastern PA", "d": "Monumental Delaware River power plant. Private/secured."}, {"id": "b11", "n": "Delaware Generating Station", "lat": 39.9673, "lng": -75.1252, "c": "ask", "r": "Eastern PA", "d": "Sold to developers (Blatstein). Still standing."}, {"id": "b12", "n": "Eastern State Penitentiary", "lat": 39.9683, "lng": -75.1727, "c": "legal", "r": "Eastern PA", "d": "Museum — just book. Abandoned power plant with turbines and tunnels is part of the site."}, {"id": "b13", "n": "Pennhurst State School", "lat": 40.184, "lng": -75.55, "c": "legal", "r": "Eastern PA", "d": "600+-acre asylum campus; official daytime history and photography tours."}, {"id": "b14", "n": "Bethlehem Steel / SteelStacks", "lat": 40.615, "lng": -75.366, "c": "legal", "r": "Eastern PA", "d": "Five blast furnaces, ~quarter-mile long. Hoover-Mason Trestle is free; furnace interiors off-limits."}, {"id": "b15", "n": "Steamtown NHS", "lat": 41.407, "lng": -75.672, "c": "legal", "r": "Eastern PA", "d": "NPS rail complex — roundhouse and locomotive-shop ranger tours, free."}, {"id": "b16", "n": "Concrete City", "lat": 41.183, "lng": -76.01, "c": "legal", "r": "Eastern PA", "d": "1911 concrete ghost town, Nanticoke authority land. Generally accessible; respect postings; best Nov-Apr."}, {"id": "b17", "n": "Norristown State Hospital", "lat": 40.124, "lng": -75.344, "c": "caution", "r": "Eastern PA", "d": "Public grounds walkable, but AVOID the active forensic units."}, {"id": "b18", "n": "Reading Viaduct Rail Park", "lat": 39.96, "lng": -75.158, "c": "legal", "r": "Eastern PA", "d": "Public park on the old viaduct."}, {"id": "b19", "n": "Ashley Planes / Huber Breaker site", "lat": 41.212, "lng": -75.9, "c": "legal", "r": "Eastern PA", "d": "Incline-railroad ruins survive as trail. Huber Breaker itself demolished 2014."}, {"id": "b20", "n": "Lukens Steel / Iron & Steel Museum", "lat": 39.983, "lng": -75.818, "c": "legal", "r": "Eastern PA", "d": "Coatesville museum tours through two long-closed mills incl. the 120\" Mill Motor House."}, {"id": "b21", "n": "Pioneer Tunnel Coal Mine", "lat": 40.783, "lng": -76.346, "c": "legal", "r": "Eastern PA", "d": "Ashland — walk-in mine tour + steam train."}, {"id": "b22", "n": "No. 9 Coal Mine & Museum", "lat": 40.829, "lng": -75.893, "c": "legal", "r": "Eastern PA", "d": "Lansford — ride 1,600 ft into the mountainside."}, {"id": "b23", "n": "Lackawanna Coal Mine Tour", "lat": 41.402, "lng": -75.687, "c": "legal", "r": "Eastern PA", "d": "McDade Park, Scranton — 300 ft underground."}, {"id": "b24", "n": "Eckley Miners' Village", "lat": 40.993, "lng": -75.859, "c": "legal", "r": "Eastern PA", "d": "Preserved 1854 patch town (PHMC). The legal ghost-town experience."}, {"id": "b25", "n": "Scranton Iron Furnaces", "lat": 41.403, "lng": -75.671, "c": "legal", "r": "Eastern PA", "d": "Standing stone ruins, walkable. Contact: site administrator at the Anthracite Heritage Museum."}, {"id": "b26", "n": "Coplay Cement Kilns", "lat": 40.67, "lng": -75.494, "c": "legal", "r": "Eastern PA", "d": "Row of monumental 19th-c. kilns preserved in a public park."}, {"id": "b27", "n": "Thomas Iron Works ruins", "lat": 40.658, "lng": -75.487, "c": "legal", "r": "Eastern PA", "d": "Hokendauqua — publicly viewable anthracite-iron ruins."}, {"id": "b28", "n": "Scranton Lace", "lat": 41.421, "lng": -75.652, "c": "caution", "r": "Eastern PA", "d": "Largely demolished/converting to Lace Village. Active construction site, historically patrolled."}, {"id": "b29", "n": "St. Nicholas Breaker site", "lat": 40.818, "lng": -76.117, "c": "gone", "r": "Eastern PA", "d": "Scrapped — only scale houses and a pump house remain."}, {"id": "b30", "n": "Allentown State Hospital site", "lat": 40.609, "lng": -75.437, "c": "gone", "r": "Eastern PA", "d": "Razed 2020-21. Vacant parcel."}, {"id": "b31", "n": "Byberry site", "lat": 40.112, "lng": -74.97, "c": "gone", "r": "Eastern PA", "d": "Philadelphia State Hospital — demolished, now warehouses/housing."}, {"id": "b32", "n": "Centralia", "lat": 40.8034, "lng": -76.3405, "c": "avoid", "r": "Eastern PA", "d": "Underground mine fire, subsidence, toxic gases. Do not enter."}, {"id": "b33", "n": "Danville State Hospital", "lat": 40.9636, "lng": -76.5896, "c": "avoid", "r": "Eastern PA", "d": "Active psychiatric hospital — arrest and patient-privacy risk."}, {"id": "b34", "n": "Wernersville State Hospital", "lat": 40.3266, "lng": -76.0862, "c": "avoid", "r": "Eastern PA", "d": "Active state hospital. Exteriors only, from public roads."}, {"id": "b35", "n": "Abandoned PA Turnpike", "lat": 40.0, "lng": -78.15, "c": "legal", "r": "Western/Central PA", "d": "Bike/walk the bypassed tunnels at Sideling Hill. Public right-of-way."}, {"id": "b36", "n": "Kinzua Bridge State Park", "lat": 41.763, "lng": -78.588, "c": "legal", "r": "Western/Central PA", "d": "Collapsed viaduct with skywalk. State park."}, {"id": "b37", "n": "Carrie Blast Furnaces", "lat": 40.411, "lng": -79.888, "c": "legal", "r": "Western/Central PA", "d": "Rankin, near Pittsburgh — Rivers of Steel industrial-heritage and photo tours."}, {"id": "b38", "n": "Hagedorn + Glen Gardner Sanatorium", "lat": 40.7, "lng": -74.939, "c": "ask", "r": "New Jersey", "d": "#1 NJ target: 1907 TB sanatorium + 1977 hospital, side by side. NJ Treasury (DPMC), 24-hr surveillance — nobody asks, which is the opportunity."}, {"id": "b39", "n": "Fort Monmouth", "lat": 40.316, "lng": -74.043, "c": "ask", "r": "New Jersey", "d": "1,126 acres; FMERA is a public authority with monthly board meetings. Two-thirds of buildings slated for demolition."}, {"id": "b40", "n": "NJ Training School, Jamesburg", "lat": 40.334, "lng": -74.437, "c": "ask", "r": "New Jersey", "d": "Closing by 2028; active AG working group on reuse is the framing hook."}, {"id": "b41", "n": "Old Essex County Jail", "lat": 40.7434, "lng": -74.1815, "c": "ask", "r": "New Jersey", "d": "Newark, 1837, Haviland (same architect as Eastern State). Existing NJIT/preservation project to go through."}, {"id": "b42", "n": "Ancora Psychiatric Hospital", "lat": 39.697, "lng": -74.873, "c": "caution", "r": "New Jersey", "d": "Active hospital. Long shot; DHS communications office, expect exteriors."}, {"id": "b43", "n": "Trenton Psychiatric Hospital", "lat": 40.245, "lng": -74.795, "c": "caution", "r": "New Jersey", "d": "The original Kirkbride, still operating. DHS pathway, exteriors."}, {"id": "b44", "n": "Vineland Developmental Center", "lat": 39.486, "lng": -75.026, "c": "ask", "r": "New Jersey", "d": "Under-documented state campus with vacant acreage. Polite specific request likely to land."}, {"id": "b45", "n": "Woodbine Developmental Center", "lat": 39.242, "lng": -74.815, "c": "ask", "r": "New Jersey", "d": "Same NJ DHS/DDD status as Vineland."}, {"id": "b46", "n": "Roebling Steel / Roebling Museum", "lat": 40.116, "lng": -74.777, "c": "ask", "r": "New Jersey", "d": "Prestretcher Buildings 92 & 93 endangered (EPA wants demolition). Ask township + museum jointly. ~27 mi from Philly — closest Tier target."}, {"id": "b47", "n": "Greystone Park site", "lat": 40.818, "lng": -74.506, "c": "gone", "r": "New Jersey", "d": "Kirkbride demolished 2015."}, {"id": "b48", "n": "Essex Generating Station", "lat": 40.744, "lng": -74.156, "c": "ask", "r": "New Jersey", "d": "Rusting Passaic River plant, privately owned. Classic owner-ask."}, {"id": "b49", "n": "Paulinskill Viaduct", "lat": 40.928, "lng": -75.079, "c": "caution", "r": "New Jersey", "d": "Once the world's largest reinforced-concrete structure. Largely walk-up; verify posting."}, {"id": "b50", "n": "Bell Works Holmdel", "lat": 40.361, "lng": -74.174, "c": "legal", "r": "New Jersey", "d": "Saarinen's Bell Labs, repurposed as a public 'metroburb.' Walk right in."}, {"id": "b51", "n": "Long Pond Ironworks", "lat": 41.135, "lng": -74.296, "c": "legal", "r": "New Jersey", "d": "Historic site, Ringwood."}, {"id": "b52", "n": "Fort Hancock / Sandy Hook", "lat": 40.462, "lng": -73.998, "c": "legal", "r": "New Jersey", "d": "NPS — batteries and officers' row."}, {"id": "b53", "n": "Sterling Hill Mining Museum", "lat": 41.085, "lng": -74.598, "c": "legal", "r": "New Jersey", "d": "Ogdensburg zinc-mine tours."}, {"id": "b54", "n": "Asbury Park Steam Plant", "lat": 40.216, "lng": -74.003, "c": "caution", "r": "New Jersey", "d": "Warren & Wetmore, 1930. Long abandoned, fenced — exterior only."}, {"id": "b55", "n": "Glenwood Power Station", "lat": 40.9553, "lng": -73.899, "c": "ask", "r": "NYC + Westchester", "d": "'Gates of Hell,' Yonkers. Goren Group ('The Plant') has allowed paid film/photo shoots — strong email candidate."}, {"id": "b56", "n": "Brooklyn Army Terminal", "lat": 40.648, "lng": -74.025, "c": "legal", "r": "NYC + Westchester", "d": "NYCEDC / Turnstile Tours."}, {"id": "b57", "n": "Red Hook Grain Terminal", "lat": 40.6722, "lng": -74.0087, "c": "ask", "r": "NYC + Westchester", "d": "Colossal concrete elevator. Owner: Gowanus Industrial Park."}, {"id": "b58", "n": "Creedmoor Psychiatric Center", "lat": 40.7442, "lng": -73.7247, "c": "ask", "r": "NYC + Westchester", "d": "Time-sensitive: ESD redevelopment underway. Ask about sanctioned documentation before abatement. Active portion off-limits."}, {"id": "b59", "n": "Bronx Psychiatric Center high-rise", "lat": 40.8465, "lng": -73.8447, "c": "ask", "r": "NYC + Westchester", "d": "Entering demolition/redevelopment. ESD real-estate/community-engagement pathway."}, {"id": "b60", "n": "Arthur Kill Ship Graveyard", "lat": 40.5561, "lng": -74.2337, "c": "caution", "r": "NYC + Westchester", "d": "Working salvage yard (Donjon Marine) — ask for photographer access, book the kayak tour, or shoot from public shoreline."}, {"id": "b61", "n": "Governors Island", "lat": 40.6895, "lng": -74.0168, "c": "legal", "r": "NYC + Westchester", "d": "NPS forts + Trust; derelict buildings via owner-ask to the Trust."}, {"id": "b62", "n": "Fort Totten", "lat": 40.792, "lng": -73.777, "c": "legal", "r": "NYC + Westchester", "d": "Public park; fort interior via Urban Park Ranger tours."}, {"id": "b63", "n": "Newtown Creek Digester Eggs", "lat": 40.7377, "lng": -73.9463, "c": "legal", "r": "NYC + Westchester", "d": "DEP tours of monumental infrastructure."}, {"id": "b64", "n": "Fort Tilden", "lat": 40.561, "lng": -73.888, "c": "legal", "r": "NYC + Westchester", "d": "NPS Gateway parkland, batteries and bunkers."}, {"id": "b65", "n": "Fort Wadsworth / Battery Weed", "lat": 40.606, "lng": -74.056, "c": "legal", "r": "NYC + Westchester", "d": "NPS."}, {"id": "b66", "n": "Dead Horse Bay", "lat": 40.585, "lng": -73.899, "c": "caution", "r": "NYC + Westchester", "d": "Check current closure status (radiological/contamination cleanup)."}, {"id": "b67", "n": "Ellis Island South Side Hospital", "lat": 40.6986, "lng": -74.0405, "c": "legal", "r": "NYC + Westchester", "d": "Save Ellis Island 90-min hard-hat tours through 22 of 29 buildings."}, {"id": "b68", "n": "Renwick Smallpox Hospital", "lat": 40.7522, "lng": -73.9599, "c": "legal", "r": "NYC + Westchester", "d": "Stabilized Gothic ruin — view from public sidewalks, Roosevelt Island."}, {"id": "b69", "n": "Seaview Hospital", "lat": 40.588, "lng": -74.137, "c": "caution", "r": "NYC + Westchester", "d": "Part active rehab center, part abandoned. Greenbelt-adjacent; some structures view-only."}, {"id": "b70", "n": "NYC Farm Colony", "lat": 40.5905, "lng": -74.1442, "c": "caution", "r": "NYC + Westchester", "d": "Landmarks-approved senior-housing redevelopment underway."}, {"id": "b71", "n": "Willowbrook / CSI campus", "lat": 40.602, "lng": -74.148, "c": "legal", "r": "NYC + Westchester", "d": "Repurposed as College of Staten Island; self-guided Willowbrook Mile."}, {"id": "b72", "n": "Floyd Bennett Field", "lat": 40.589, "lng": -73.889, "c": "legal", "r": "NYC + Westchester", "d": "NPS hangars."}, {"id": "b73", "n": "Kingsbridge Armory", "lat": 40.8672, "lng": -73.8971, "c": "ask", "r": "NYC + Westchester", "d": "575,000 sq ft, vacant since the mid-90s. City redevelopment target — check status."}, {"id": "b74", "n": "Bartow Station ruins", "lat": 40.8716, "lng": -73.8083, "c": "legal", "r": "NYC + Westchester", "d": "Overgrown 1930s rail station on Pelham Bay parkland."}, {"id": "b75", "n": "Loew's 46th St Theater", "lat": 40.6363, "lng": -73.991, "c": "ask", "r": "NYC + Westchester", "d": "Derelict Borough Park movie palace — owner-ask type."}, {"id": "b76", "n": "Neponsit Beach Hospital", "lat": 40.568, "lng": -73.862, "c": "caution", "r": "NYC + Westchester", "d": "Abandoned ~20 years, fenced. Verify current status."}, {"id": "b77", "n": "NY State Pavilion", "lat": 40.744, "lng": -73.845, "c": "legal", "r": "NYC + Westchester", "d": "Flushing Meadows — publicly viewable, occasional official tours."}, {"id": "b78", "n": "City Hall Loop station", "lat": 40.7127, "lng": -74.0046, "c": "legal", "r": "NYC + Westchester", "d": "Via NY Transit Museum tours."}, {"id": "b79", "n": "Hudson Avenue Generating Station", "lat": 40.703, "lng": -73.98, "c": "ask", "r": "NYC + Westchester", "d": "Transitional — the abandoned window is closing. Move quickly."}, {"id": "b80", "n": "Bush Terminal / Industry City", "lat": 40.655, "lng": -74.011, "c": "caution", "r": "NYC + Westchester", "d": "Transitional/repurposed; remnants only."}, {"id": "b81", "n": "Brooklyn Navy Yard / Admirals Row", "lat": 40.7, "lng": -73.972, "c": "legal", "r": "NYC + Westchester", "d": "BLDG 92 + Turnstile tours. Admirals Row mostly demolished; Yard is active industry."}, {"id": "b82", "n": "Untermyer Gardens area", "lat": 40.96, "lng": -73.889, "c": "legal", "r": "NYC + Westchester", "d": "Parkland gardens; nearby estate ruins vary public/private."}, {"id": "b83", "n": "Freedom Tunnel", "lat": 40.815, "lng": -73.963, "c": "avoid", "r": "NYC + Westchester", "d": "Live Amtrak rail. Firm no — dangerous, not just illegal."}, {"id": "b84", "n": "North Brother Island", "lat": 40.8006, "lng": -73.8983, "c": "avoid", "r": "NYC + Westchester", "d": "NYC Parks 'Forever Wild' heron rookery — entry prohibited; research permits only."}, {"id": "b85", "n": "Hart Island", "lat": 40.853, "lng": -73.77, "c": "avoid", "r": "NYC + Westchester", "d": "Public burial ground — official visitation protocols only."}, {"id": "b86", "n": "Kings Park Psychiatric (Bldg 93)", "lat": 40.8877, "lng": -73.227, "c": "caution", "r": "Long Island", "d": "Grounds are Nissequogue River State Park — legal to walk. Buildings sealed; NYS Park Police ticket and arrest."}, {"id": "b87", "n": "Pilgrim State Psychiatric Center", "lat": 40.79, "lng": -73.287, "c": "caution", "r": "Long Island", "d": "Once world's largest hospital. Huge abandoned portion beside an ACTIVE hospital (avoid). LI Psychiatric Museum in Bldg 45."}, {"id": "b88", "n": "Central Islip Psychiatric remnants", "lat": 40.79, "lng": -73.197, "c": "caution", "r": "Long Island", "d": "Core demolished/NYIT campus; some 1890s survivors."}, {"id": "b89", "n": "Edgewood State Hospital site", "lat": 40.776, "lng": -73.322, "c": "gone", "r": "Long Island", "d": "Imploded; now Oak Brush Plains State Preserve."}, {"id": "b90", "n": "EPCAL / Grumman Calverton", "lat": 40.915, "lng": -72.79, "c": "ask", "r": "Long Island", "d": "~2,900 acres, F-14 plant hangars and runways. Town of Riverhead owns; sale in legal limbo. Recreation areas public."}, {"id": "b91", "n": "Grumman Bethpage", "lat": 40.754, "lng": -73.496, "c": "gone", "r": "Long Island", "d": "Repurposed (Grumman Studios), private/secured. Superfund groundwater plume."}, {"id": "b92", "n": "Republic Aviation / Airpower Museum", "lat": 40.7288, "lng": -73.4134, "c": "legal", "r": "Long Island", "d": "Surviving P-47 hangar houses the American Airpower Museum, Wed-Sun."}, {"id": "b93", "n": "Shoreham Nuclear Power Plant", "lat": 40.9614, "lng": -72.8652, "c": "ask", "r": "Long Island", "d": "Never-operated reactor, LIPA-held, secured. Pure owner-ask."}, {"id": "b94", "n": "Camp Hero", "lat": 41.0634, "lng": -71.873, "c": "legal", "r": "Long Island", "d": "State park, Montauk. Radar tower exterior only."}, {"id": "b95", "n": "Bayville Adventure Park area", "lat": 40.908, "lng": -73.562, "c": "caution", "r": "Long Island", "d": "From the screening list — verify current status."}, {"id": "b96", "n": "Lido Beach WWII batteries", "lat": 40.589, "lng": -73.625, "c": "caution", "r": "Long Island", "d": "Coastal installations; access varies."}, {"id": "b97", "n": "Sperry / Unisys, Lake Success", "lat": 40.77, "lng": -73.704, "c": "gone", "r": "Long Island", "d": "Repurposed mixed-use; hazardous-waste remediation ongoing."}, {"id": "b98", "n": "Suffolk County Sanatorium (Selden)", "lat": 40.849, "lng": -73.033, "c": "home", "r": "Long Island", "d": "YOUR SITE — family property adjoining SCCC Ammerman. Tunnel system with asbestos lagging; deep exploration ruled out, pursuing archives instead."}, {"id": "b99", "n": "Lawrence Aviation Industries", "lat": 40.928, "lng": -73.063, "c": "avoid", "r": "Long Island", "d": "Federal Superfund site, Port Jefferson Station."}, {"id": "b100", "n": "Plum Island", "lat": 41.183, "lng": -72.173, "c": "avoid", "r": "Long Island", "d": "Federally restricted — access request is a non-starter."}, {"id": "b101", "n": "Brookhaven National Laboratory", "lat": 40.873, "lng": -72.872, "c": "avoid", "r": "Long Island", "d": "Federal restricted zones."}, {"id": "b102", "n": "Hudson River State Hospital", "lat": 41.727, "lng": -73.93, "c": "gone", "r": "Hudson Valley", "d": "Kirkbride largely burned/redeveloped. Post-fire remnants only."}, {"id": "b103", "n": "Letchworth Village", "lat": 41.2073, "lng": -74.027, "c": "caution", "r": "Hudson Valley", "d": "Parkland grounds walkable, but Haverstraw police document arrests at the buildings."}, {"id": "b104", "n": "Rockland Psychiatric Center", "lat": 41.145, "lng": -73.958, "c": "caution", "r": "Hudson Valley", "d": "Abandoned buildings beside an ACTIVE hospital — do not approach the active portion."}, {"id": "b105", "n": "Bannerman Castle", "lat": 41.4553, "lng": -73.9888, "c": "legal", "r": "Hudson Valley", "d": "Bannerman Castle Trust boat/kayak tours, May-Oct."}, {"id": "b106", "n": "Wyndcliffe Mansion", "lat": 41.905, "lng": -73.947, "c": "ask", "r": "Hudson Valley", "d": "Private ruin, Rhinebeck; partial collapse. Owner-ask."}, {"id": "b107", "n": "Doodletown", "lat": 41.296, "lng": -73.993, "c": "legal", "r": "Hudson Valley", "d": "Ghost hamlet on Bear Mountain public parkland."}, {"id": "b108", "n": "Dennings Point ruins", "lat": 41.49, "lng": -73.983, "c": "legal", "r": "Hudson Valley", "d": "Hudson Highlands State Park, Beacon."}, {"id": "b109", "n": "Old Beacon Hat Mill", "lat": 41.504, "lng": -73.976, "c": "caution", "r": "Hudson Valley", "d": "Beacon mill remnants — verify ownership/redevelopment."}, {"id": "b110", "n": "Mount Beacon Incline ruins", "lat": 41.493, "lng": -73.954, "c": "legal", "r": "Hudson Valley", "d": "Trail hike to the incline-railway ruins."}, {"id": "b111", "n": "Cornish Estate ruins", "lat": 41.437, "lng": -73.966, "c": "legal", "r": "Hudson Valley", "d": "'Northgate' — Hudson Highlands trail, Cold Spring."}, {"id": "b112", "n": "New Croton Dam / OCA Trail", "lat": 41.226, "lng": -73.86, "c": "legal", "r": "Hudson Valley", "d": "Public — Croton Gorge Park + 26-mile Old Croton Aqueduct trail (interior closed)."}, {"id": "b113", "n": "Sing Sing Prison Museum", "lat": 41.155, "lng": -73.869, "c": "legal", "r": "Hudson Valley", "d": "Museum, Ossining."}, {"id": "b114", "n": "Catskill Game Farm", "lat": 42.194, "lng": -73.968, "c": "caution", "r": "Hudson Valley", "d": "Private; hosts sanctioned stays/events — go through the owners."}, {"id": "b115", "n": "Camp La Guardia", "lat": 41.332, "lng": -74.241, "c": "ask", "r": "Hudson Valley", "d": "Vacant former shelter complex, county-held, Chester."}, {"id": "b116", "n": "Overlook Mountain House ruins", "lat": 42.07, "lng": -74.121, "c": "legal", "r": "Hudson Valley", "d": "Hike-up ruin, Woodstock."}, {"id": "b117", "n": "Grossinger's site", "lat": 41.818, "lng": -74.728, "c": "gone", "r": "Hudson Valley", "d": "Borscht Belt anchor — largely demolished."}, {"id": "b118", "n": "The Pines Resort", "lat": 41.722, "lng": -74.642, "c": "caution", "r": "Hudson Valley", "d": "Private, major fires 2022-24. Treat structures as unstable."}, {"id": "b119", "n": "Homowack Lodge", "lat": 41.657, "lng": -74.434, "c": "caution", "r": "Hudson Valley", "d": "Private, fire-damaged."}, {"id": "b120", "n": "Frontier Town", "lat": 43.943, "lng": -73.729, "c": "legal", "r": "Hudson Valley", "d": "North Hudson — partly a public DEC campground now."}, {"id": "b121", "n": "IBM Kingston / TechCity (iPark87)", "lat": 41.97, "lng": -73.988, "c": "caution", "r": "Hudson Valley", "d": "Transitional redevelopment — the abandoned window is closing."}, {"id": "b122", "n": "IBM East Fishkill / iPark84", "lat": 41.556, "lng": -73.802, "c": "gone", "r": "Hudson Valley", "d": "Repurposed/partly active chip fab."}, {"id": "b123", "n": "Palisades IBM Center", "lat": 41.023, "lng": -73.927, "c": "ask", "r": "Hudson Valley", "d": "Large former IBM conference complex, privately owned/secured."}, {"id": "b124", "n": "Widow Jane Mine / Rosendale", "lat": 41.846, "lng": -74.085, "c": "legal", "r": "Hudson Valley", "d": "Cathedral-pillared cement mine, open for legal visits and events."}, {"id": "b125", "n": "Hutton Brickyards", "lat": 41.956, "lng": -73.964, "c": "gone", "r": "Hudson Valley", "d": "Repurposed event venue/hotel, Kingston."}, {"id": "b126", "n": "Danskammer Generating Station", "lat": 41.5726, "lng": -73.9659, "c": "ask", "r": "Hudson Valley", "d": "Riverfront plant; owner filed for bankruptcy — verify current entity."}, {"id": "b127", "n": "Roseton Generating Station", "lat": 41.5636, "lng": -73.9679, "c": "caution", "r": "Hudson Valley", "d": "Adjacent to Danskammer; verify operator/status."}, {"id": "b128", "n": "Iona Island", "lat": 41.303, "lng": -73.98, "c": "caution", "r": "Hudson Valley", "d": "Former naval arsenal, now restricted bird sanctuary — view from causeway."}, {"id": "b129", "n": "Fort Slocum / Davids Island", "lat": 40.888, "lng": -73.769, "c": "gone", "r": "Hudson Valley", "d": "Buildings demolished; restricted city-owned island."}, {"id": "b130", "n": "Harlem Valley / Wingdale", "lat": 41.647, "lng": -73.562, "c": "avoid", "r": "Hudson Valley", "d": "Olivet University property — documented arrests of photographers."}, {"id": "b131", "n": "Buffalo Central Terminal", "lat": 42.89, "lng": -78.828, "c": "legal", "r": "Upstate + CT", "d": "Tours and events; redevelopment funding growing."}, {"id": "b132", "n": "Silo City", "lat": 42.862, "lng": -78.868, "c": "legal", "r": "Upstate + CT", "d": "Grain-elevator complex with official tours, Buffalo."}, {"id": "b133", "n": "Richardson Olmsted Campus", "lat": 42.921, "lng": -78.879, "c": "legal", "r": "Upstate + CT", "d": "Explore Buffalo tours of the Richardson Kirkbride."}, {"id": "b134", "n": "Utica State Hospital (Old Main)", "lat": 43.101, "lng": -75.26, "c": "ask", "r": "Upstate + CT", "d": "Restricted Greek Revival asylum — pursue via historical societies / photo permits."}, {"id": "b135", "n": "Fairfield Hills", "lat": 41.396, "lng": -73.283, "c": "legal", "r": "Upstate + CT", "d": "Town-owned campus, Newtown CT — grounds publicly walkable."}];
-const CATS = {
+const DEFAULT_CATS = {
   legal:{label:"Legal now",color:"#2e7d32"},
   ask:{label:"Owner-ask",color:"#1565c0"},
   caution:{label:"Caution / mixed",color:"#ef6c00"},
   avoid:{label:"Avoid entirely",color:"#c62828"},
   gone:{label:"Gone / repurposed",color:"#757575"},
   home:{label:"Your site",color:"#6a1b9a"},
-  custom:{label:"My pin",color:"#00838f"}
+  custom:{label:"My pin",color:"#00838f"},
+  neutral:{label:"Neutral",color:"#9aa3ab"}
 };
+let CATS = JSON.parse(JSON.stringify(DEFAULT_CATS));
+/* Any location whose status is missing or was deleted resolves to "neutral". */
+function resolveCat(c){ return (c && CATS[c]) ? c : "neutral"; }
+function catOf(c){ return CATS[resolveCat(c)] || CATS.neutral || DEFAULT_CATS.neutral; }
+function applyCats(){
+  const src = (user.cats && Object.keys(user.cats).length) ? user.cats : DEFAULT_CATS;
+  CATS = {};
+  for (const [k,v] of Object.entries(src)) CATS[k] = {label:v.label, color:v.color};
+  if (!CATS.neutral) CATS.neutral = {...DEFAULT_CATS.neutral};
+}
+function persistCats(){ user.cats = JSON.parse(JSON.stringify(CATS)); }
+function normHex(c){ const m=/^#([0-9a-fA-F]{6})$/.exec(c||""); return m ? "#"+m[1].toLowerCase() : "#00838f"; }
 const STORE_KEY = "urbexAtlasUserData.v1";
 const GH_KEY = "urbexAtlasGH.v1";
 
 /* ---------- state & persistence ---------- */
 let storageOK = true;
-let user = { version:1, pins:[], extras:{}, hiddenBase:[], baseMoves:{} };
+let user = { version:1, pins:[], extras:{}, hiddenBase:[], baseMoves:{}, cats:{} };
 let gh = { owner:"", repo:"", branch:"main", token:"" };
 
 function loadLocal(){
   try {
     const raw = localStorage.getItem(STORE_KEY);
-    if (raw) user = Object.assign({version:1,pins:[],extras:{},hiddenBase:[],baseMoves:{}}, JSON.parse(raw));
+    if (raw) user = Object.assign({version:1,pins:[],extras:{},hiddenBase:[],baseMoves:{},cats:{}}, JSON.parse(raw));
     const g = localStorage.getItem(GH_KEY);
     if (g) gh = Object.assign(gh, JSON.parse(g));
   } catch(e){ storageOK = false; }
@@ -256,6 +295,7 @@ function mergeUser(incoming){
   user.extras = Object.assign({}, user.extras, incoming.extras||{});
   user.hiddenBase = [...new Set([...(user.hiddenBase||[]), ...(incoming.hiddenBase||[])])];
   user.baseMoves = Object.assign({}, user.baseMoves, incoming.baseMoves||{});
+  if (incoming.cats && Object.keys(incoming.cats).length) user.cats = Object.assign({}, user.cats, incoming.cats);
 }
 
 /* ---------- GitHub API ---------- */
@@ -358,7 +398,7 @@ function dotIcon(col, size, cls){
   return L.divIcon({className:"", html:'<div class="'+cls+'" style="background:'+col+';width:'+size+'px;height:'+size+'px"></div>', iconSize:[size,size], iconAnchor:[size/2,size/2]});
 }
 function pinIcon(col){ return dotIcon(col, 16, "pinDot"); }
-function baseIcon(s){ return dotIcon(CATS[s.c].color, s.c==="home"?19:14, "baseDot"); }
+function baseIcon(s){ return dotIcon(catOf(s.c).color, s.c==="home"?19:14, "baseDot"); }
 const baseMarkers = {};
 BASE.forEach(s=>{
   const m = L.marker([s.lat,s.lng],{icon:baseIcon(s), draggable:dragEnabled});
@@ -381,12 +421,15 @@ function applyBaseMoves(){
     if (baseMarkers[id]) baseMarkers[id].setLatLng(ll);
   }
 }
+function applyBaseCats(){
+  BASE.forEach(s=>{ if (baseMarkers[s.id]) baseMarkers[s.id].setIcon(baseIcon(s)); });
+}
 let pinMarkers = {};
 function rebuildPinMarkers(){
   Object.values(pinMarkers).forEach(m=>map.removeLayer(m));
   pinMarkers = {};
   user.pins.forEach(p=>{
-    const col = (CATS[p.c]||CATS.custom).color;
+    const col = catOf(p.c).color;
     const m = L.marker([p.lat,p.lng],{icon:pinIcon(col), draggable:dragEnabled});
     m.on("popupopen", ()=> m.setPopupContent(pinPopup(p)));
     m.bindPopup("…");
@@ -422,7 +465,7 @@ function tagStrip(parent, tags){
 function basePopup(s){
   const x = user.extras[s.id] || {};
   const root = el("div");
-  const cat = el("div","pp-cat","● "+CATS[s.c].label); cat.style.color=CATS[s.c].color; root.appendChild(cat);
+  const cat = el("div","pp-cat","● "+catOf(s.c).label); cat.style.color=catOf(s.c).color; root.appendChild(cat);
   root.appendChild(el("div","pp-nm",s.n));
   root.appendChild(el("div","pp-note",s.d));
   if (x.note || (x.photos&&x.photos.length) || (x.tags&&x.tags.length)){
@@ -444,7 +487,7 @@ function basePopup(s){
 }
 function pinPopup(p){
   const root = el("div");
-  const cat = el("div","pp-cat","● "+(CATS[p.c]||CATS.custom).label+" · your pin"); cat.style.color=(CATS[p.c]||CATS.custom).color; root.appendChild(cat);
+  const cat = el("div","pp-cat","● "+catOf(p.c).label+" · your pin"); cat.style.color=catOf(p.c).color; root.appendChild(cat);
   root.appendChild(el("div","pp-nm",p.n));
   if (p.d) root.appendChild(el("div","pp-note",p.d));
   tagStrip(root, p.tags);
@@ -478,16 +521,98 @@ document.getElementById("restoreHidden").onclick=()=>{
 };
 
 /* ---------- filters / search / list ---------- */
-const activeCats = new Set(Object.keys(CATS));
+let activeCats = new Set(Object.keys(CATS));
+let knownCats = new Set(Object.keys(CATS));
 const activeTags = new Set();
 let query = "";
 
 const catFEl = document.getElementById("catFilters");
-for (const [k,v] of Object.entries(CATS)){
-  const c = el("span","chip on"); c.innerHTML = `<span class="dot" style="background:${v.color}"></span>${v.label}`;
-  c.onclick = ()=>{ activeCats.has(k)?activeCats.delete(k):activeCats.add(k); c.classList.toggle("on"); render(); };
-  catFEl.appendChild(c);
+let editStatuses = false;
+function locationsWithCat(key){
+  let n = 0;
+  user.pins.forEach(p=>{ if (resolveCat(p.c)===key) n++; });
+  BASE.forEach(s=>{ if (!user.hiddenBase.includes(s.id) && resolveCat(s.c)===key) n++; });
+  return n;
 }
+function renderCatChips(){
+  // reconcile filter state with current statuses (new ones show by default, deleted ones drop out)
+  Object.keys(CATS).forEach(k=>{ if (!knownCats.has(k)){ knownCats.add(k); activeCats.add(k); } });
+  [...knownCats].forEach(k=>{ if (!CATS[k]){ knownCats.delete(k); activeCats.delete(k); } });
+  const w = catFEl; w.innerHTML="";
+  for (const [k,v] of Object.entries(CATS)){
+    if (k==="neutral" && locationsWithCat("neutral")===0) continue; // only show Neutral when something uses it
+    const c = el("span","chip"+(k==="neutral"?" neutral":"")+(activeCats.has(k)?" on":""));
+    c.innerHTML = `<span class="dot" style="background:${v.color}"></span>${editStatuses?"✎ ":""}${v.label}`;
+    c.onclick = ()=>{
+      if (editStatuses){ openCatEditor(k); return; }
+      activeCats.has(k)?activeCats.delete(k):activeCats.add(k); render(); renderCatChips();
+    };
+    w.appendChild(c);
+  }
+  const add = el("span","chip editT","＋ status"); add.title="Add a new status";
+  add.onclick=()=>openCatEditor(null);
+  w.appendChild(add);
+  const e = el("span","chip editT", editStatuses ? "✓ done" : "✎ edit");
+  e.onclick=()=>{ editStatuses=!editStatuses; renderCatChips(); if(editStatuses) toast("Status edit mode — tap a status to rename, recolor, or delete it."); };
+  w.appendChild(e);
+}
+
+/* ---------- status (category) editor ---------- */
+let catEditKey=null;
+const catVeil=document.getElementById("catVeil");
+function updateCatPreview(){
+  document.getElementById("catPreview").querySelector(".dot").style.background=document.getElementById("catColor").value;
+  document.getElementById("catPreviewLbl").textContent=document.getElementById("catName").value.trim()||"Preview";
+}
+document.getElementById("catName").addEventListener("input", updateCatPreview);
+document.getElementById("catColor").addEventListener("input", updateCatPreview);
+function openCatEditor(key){
+  catEditKey=key;
+  const isNew=!key, isNeutral=key==="neutral";
+  document.getElementById("catTitle").textContent = isNew ? "New status" : "Edit status";
+  const cur = key ? CATS[key] : {label:"", color:"#00838f"};
+  document.getElementById("catName").value=cur.label;
+  document.getElementById("catColor").value=normHex(cur.color);
+  const del=document.getElementById("catDelete"), usage=document.getElementById("catUsage");
+  if (isNew){ del.style.display="none"; usage.textContent="Pick a name and color. It becomes selectable when adding or editing a pin."; }
+  else if (isNeutral){ del.style.display="none"; usage.textContent="“Neutral” is the built-in fallback for locations with no status — it can be recolored and renamed, but not deleted."; }
+  else {
+    del.style.display="";
+    const n=locationsWithCat(key);
+    usage.textContent = n ? (n+" location"+(n===1?"":"s")+" use this status; deleting it moves them to “Neutral”.") : "No locations currently use this status.";
+  }
+  updateCatPreview();
+  catVeil.classList.add("open"); map.closePopup();
+}
+document.getElementById("catCancel").onclick=()=>catVeil.classList.remove("open");
+catVeil.addEventListener("click", e=>{ if(e.target===catVeil) catVeil.classList.remove("open"); });
+document.getElementById("catSave").onclick=()=>{
+  const label=document.getElementById("catName").value.trim();
+  const color=document.getElementById("catColor").value;
+  if (!label){ toast("Give the status a name."); return; }
+  if (catEditKey){
+    CATS[catEditKey].label=label; CATS[catEditKey].color=color;
+  } else {
+    let base=label.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"") || "status";
+    let k=base, i=2; while (CATS[k]) k=base+"-"+(i++);
+    CATS[k]={label,color}; knownCats.add(k); activeCats.add(k);
+  }
+  persistCats(); catVeil.classList.remove("open");
+  save(); refreshAll();
+  toast(catEditKey ? "Status updated." : "Status “"+label+"” added.");
+};
+document.getElementById("catDelete").onclick=()=>{
+  if (!catEditKey || catEditKey==="neutral") return;
+  const n=locationsWithCat(catEditKey);
+  if (!confirm('Delete status "'+CATS[catEditKey].label+'"?'+(n?" "+n+" location"+(n===1?"":"s")+" will become Neutral.":""))) return;
+  delete CATS[catEditKey];
+  knownCats.delete(catEditKey); activeCats.delete(catEditKey);
+  if (!CATS.neutral) CATS.neutral={...DEFAULT_CATS.neutral};
+  knownCats.add("neutral"); activeCats.add("neutral");
+  persistCats(); catVeil.classList.remove("open");
+  save(); refreshAll();
+  toast("Status deleted — affected locations are now Neutral.");
+};
 function allTags(){
   const t = new Set();
   user.pins.forEach(p=>(p.tags||[]).forEach(x=>t.add(x)));
@@ -545,7 +670,7 @@ function searchable(kind, obj){
   return [obj.n,obj.r,obj.d,x.note||"",(x.tags||[]).join(" ")].join(" ");
 }
 function visible(kind, obj){
-  const cat = kind==="pin" ? (obj.c in CATS?obj.c:"custom") : obj.c;
+  const cat = resolveCat(obj.c);
   if (!activeCats.has(cat)) return false;
   if (activeTags.size){
     const tags = entryTags(kind,obj);
@@ -561,7 +686,7 @@ function render(){
   listEl.innerHTML=""; let shown=0;
   const addRow = (kind,obj,marker)=>{
     shown++;
-    const cat = kind==="pin" ? (obj.c in CATS?obj.c:"custom") : obj.c;
+    const cat = resolveCat(obj.c);
     const x = kind==="base" ? (user.extras[obj.id]||{}) : obj;
     const hasMedia = (x.photos&&x.photos.length) ? ' <span class="cam">📷'+x.photos.length+'</span>' : "";
     const it = el("div","item");
@@ -599,7 +724,7 @@ function render(){
   rb.style.display = user.hiddenBase.length ? "" : "none";
   rb.textContent = "Restore "+user.hiddenBase.length+" removed pin"+(user.hiddenBase.length===1?"":"s");
 }
-function refreshAll(){ applyBaseMoves(); rebuildPinMarkers(); renderTagChips(); render(); updateStorageBar(); }
+function refreshAll(){ applyCats(); applyBaseMoves(); applyBaseCats(); rebuildPinMarkers(); rebuildCatSelect(); renderCatChips(); renderTagChips(); render(); updateStorageBar(); }
 
 /* ---------- drag toggle ---------- */
 const dragBtn=document.getElementById("dragBtn");
@@ -798,9 +923,14 @@ map.on("click", e=>{
 let modalCtx=null, modalPhotos=[], modalMoveTo=null;
 const veil=document.getElementById("veil");
 const catSel=document.getElementById("mCat");
-for (const [k,v] of Object.entries(CATS)){
-  const o=document.createElement("option"); o.value=k; o.textContent=v.label; catSel.appendChild(o);
+function rebuildCatSelect(){
+  const prev=catSel.value; catSel.innerHTML="";
+  for (const [k,v] of Object.entries(CATS)){
+    const o=document.createElement("option"); o.value=k; o.textContent=v.label; catSel.appendChild(o);
+  }
+  if (CATS[prev]) catSel.value=prev;
 }
+rebuildCatSelect();
 function openModal(ctx){
   modalCtx=ctx; modalPhotos=[]; modalMoveTo=null;
   const title=document.getElementById("mTitle"), hint=document.getElementById("mHint");
@@ -809,13 +939,13 @@ function openModal(ctx){
   if (ctx.mode==="newPin"){
     title.textContent="Add pin"; hint.textContent=pendingLatLng.lat.toFixed(4)+", "+pendingLatLng.lng.toFixed(4);
     nameRow.style.display=""; catRow.style.display="";
-    document.getElementById("mName").value=""; catSel.value="custom";
+    document.getElementById("mName").value=""; catSel.value=CATS.custom?"custom":(Object.keys(CATS)[0]||"neutral");
     document.getElementById("mTags").value=""; document.getElementById("mNote").value="";
   } else if (ctx.mode==="editPin"){
     const p=user.pins.find(q=>q.id===ctx.pinId);
     title.textContent="Edit pin"; hint.textContent=p.lat.toFixed(4)+", "+p.lng.toFixed(4);
     nameRow.style.display=""; catRow.style.display="";
-    document.getElementById("mName").value=p.n; catSel.value=(p.c in CATS)?p.c:"custom";
+    document.getElementById("mName").value=p.n; catSel.value=resolveCat(p.c);
     document.getElementById("mTags").value=(p.tags||[]).join(", ");
     document.getElementById("mNote").value=p.d||"";
     modalPhotos=(p.photos||[]).slice();
