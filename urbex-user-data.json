@@ -40,7 +40,8 @@
    "lastVisit": null,
    "demolishedDate": null,
    "demolitionNoted": null,
-   "built": null
+   "built": null,
+   "r": "Eastern PA"
   },
   {
    "id": "p1784645664715",
@@ -56,6 +57,25 @@
    "d": "",
    "photos": [],
    "firstVisit": "2025-08-02",
+   "lastVisit": null,
+   "demolishedDate": null,
+   "demolitionNoted": null,
+   "built": null
+  },
+  {
+   "id": "p1784647454946",
+   "n": "CHS",
+   "lat": 40.037414811408944,
+   "lng": -75.15013603635852,
+   "c": "ask",
+   "r": "Eastern PA",
+   "tags": [
+    "school",
+    "visited"
+   ],
+   "d": "",
+   "photos": [],
+   "firstVisit": "2023-05-03",
    "lastVisit": null,
    "demolishedDate": null,
    "demolitionNoted": null,
