@@ -1553,7 +1553,8 @@ function sampleColors(imgEl){
     const d=cx.getImageData(0,0,8,8).data, cols=[];
     for (let i=0;i<d.length;i+=16){ if(d[i+3]>100) cols.push("rgb("+d[i]+","+d[i+1]+","+d[i+2]+")"); }
     if (cols.length){ if(imgEl) imgEl.__annCols=cols; return cols; }
-  } catch(e){}
+  } catch(e){}                                                          // cross-origin (repo) photo taints the canvas
+  if (imgEl) imgEl.__annCols=FALLBACK_CONFETTI;                         // cache so we don't retry getImageData each click
   return FALLBACK_CONFETTI;
 }
 function currentStripImg(){
@@ -1641,7 +1642,7 @@ function openAnniversaryCard(ev){
     const ordered = memorial ? photos.slice().reverse() : photos.slice();
     ordered.forEach((ph,idx)=>{
       const fig=document.createElement("figure");
-      const img=document.createElement("img"); img.crossOrigin="anonymous"; img.src=resolvePhoto(photoSrc(ph)); fig.appendChild(img);
+      const img=document.createElement("img"); img.src=resolvePhoto(photoSrc(ph)); fig.appendChild(img);
       if (memorial && idx===0){ fig.className="annlast"; fig.appendChild(el("figcaption",null,"The last time you saw this standing")); }
       else if (photoDate(ph)){ fig.appendChild(el("figcaption",null,photoDate(ph))); }
       strip.appendChild(fig);
