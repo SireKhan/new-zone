@@ -113,6 +113,9 @@
   #lightbox.open{display:flex}
   #lightbox img{max-width:94vw;max-height:92vh;border-radius:4px}
   #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#22292f;color:#e8e4da;font:11px ui-monospace,Consolas,monospace;letter-spacing:.05em;padding:8px 15px;border-radius:4px;z-index:4000;display:none;max-width:88vw;text-align:center}
+  /* mobile filter tab + bottom sheet (hidden on desktop) */
+  #filterTab{display:none}
+  #sheetBackdrop{display:none}
   @media (max-width:760px){
     header{flex-wrap:wrap;padding:9px 14px 8px}
     header>div:first-child{flex:1 1 100%;min-width:0}
@@ -120,9 +123,30 @@
     header .sub{white-space:normal}
     .hbtns{width:100%;justify-content:flex-start}
     #app{flex-direction:column}
-    #side{width:100%;min-width:0;height:45%;order:2;display:block;overflow-y:auto;-webkit-overflow-scrolling:touch;border-right:none;border-top:1px solid var(--hair)}
+    #side{width:100%;min-width:0;height:50%;order:2;display:block;overflow-y:auto;-webkit-overflow-scrolling:touch;border-right:none;border-top:1px solid var(--hair)}
     #list{overflow:visible}
     #map{order:1;flex:1 1 0;min-height:0}
+
+    #filterTab{display:flex;align-items:center;gap:9px;width:100%;padding:12px 14px;
+      background:#2c343c;color:#e8e4da;border:none;border-bottom:1px solid var(--hair);
+      font:11px ui-monospace,Consolas,monospace;letter-spacing:.06em;text-transform:uppercase;
+      cursor:pointer;position:sticky;top:0;z-index:5}
+    #filterTabDot{width:7px;height:7px;border-radius:50%;background:transparent;flex:none}
+    #filterTab.filtered #filterTabDot{background:#1a73e8}
+    #filterTabCount{margin-left:auto;color:#8b949c;text-transform:none;letter-spacing:.03em}
+    #filterTabChevron{color:#8b949c;transition:transform .25s;font-size:10px}
+    #filterTab.open #filterTabChevron{transform:rotate(180deg)}
+
+    #controls{position:fixed;left:0;right:0;bottom:0;z-index:1500;max-height:80vh;overflow-y:auto;
+      background:var(--panel);border-top:1px solid var(--hair);border-radius:16px 16px 0 0;
+      padding:22px 16px calc(16px + env(safe-area-inset-bottom,0px));
+      box-shadow:0 -10px 28px rgba(0,0,0,.5);
+      transform:translateY(105%);transition:transform .28s ease;visibility:hidden}
+    #controls::before{content:"";position:absolute;top:9px;left:50%;transform:translateX(-50%);
+      width:42px;height:4px;border-radius:2px;background:#5a646e}
+    #controls.sheetOpen{transform:translateY(0);visibility:visible}
+    #sheetBackdrop{position:fixed;inset:0;background:rgba(8,10,13,.5);z-index:1400;display:none}
+    #sheetBackdrop.on{display:block}
   }
 </style>
 </head>
@@ -147,6 +171,12 @@
 </header>
 <div id="app">
   <aside id="side">
+    <button id="filterTab" type="button" aria-expanded="false" aria-controls="controls">
+      <span id="filterTabDot"></span>
+      <span>Search &amp; filters</span>
+      <span id="filterTabCount"></span>
+      <span id="filterTabChevron">&#9650;</span>
+    </button>
     <div id="controls">
       <input id="q" type="search" placeholder="Search names, notes, tags&hellip;">
       <div class="flabel">GPS / location lookup</div>
@@ -174,6 +204,7 @@
   </aside>
   <div id="map"></div>
 </div>
+<div id="sheetBackdrop"></div>
 
 <div class="veil" id="veil"><div class="modal">
   <h3 id="mTitle">Add pin</h3>
@@ -743,7 +774,29 @@ function render(){
   const rb = document.getElementById("restoreHidden");
   rb.style.display = user.hiddenBase.length ? "" : "none";
   rb.textContent = "Restore "+user.hiddenBase.length+" removed pin"+(user.hiddenBase.length===1?"":"s");
+  updateFilterTab(shown);
 }
+/* ---------- mobile filter sheet ---------- */
+const filterTab=document.getElementById("filterTab");
+const controlsEl=document.getElementById("controls");
+const sheetBackdrop=document.getElementById("sheetBackdrop");
+let sheetOpen=false;
+function setSheet(open){
+  sheetOpen=open;
+  controlsEl.classList.toggle("sheetOpen", open);
+  sheetBackdrop.classList.toggle("on", open);
+  filterTab.classList.toggle("open", open);
+  filterTab.setAttribute("aria-expanded", open?"true":"false");
+}
+function filtersActive(){
+  return !!query || activeTags.size>0 || [...knownCats].some(k=>CATS[k] && !activeCats.has(k));
+}
+function updateFilterTab(shown){
+  document.getElementById("filterTabCount").textContent = shown+" shown";
+  filterTab.classList.toggle("filtered", filtersActive());
+}
+filterTab.onclick=()=>setSheet(!sheetOpen);
+sheetBackdrop.onclick=()=>setSheet(false);
 function refreshAll(){ applyCats(); applyBaseMoves(); applyBaseEdits(); applyBaseCats(); rebuildPinMarkers(); rebuildCatSelect(); renderCatChips(); renderTagChips(); render(); updateStorageBar(); }
 
 /* ---------- drag toggle ---------- */
