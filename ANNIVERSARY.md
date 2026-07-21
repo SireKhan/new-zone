@@ -215,11 +215,15 @@ device/custom **date control** lives at the top of this tab.
   anchor), reverse-chronological. **Unopened** rows carry a dot. Tapping opens
   the full card. Missed anniversaries never expire — a years-old one still
   opens in full.
-- **Achievements** — four tiered categories (badges at 1/5/10/25/50/75/100):
-  **Places visited** (pins/extras tagged `visited`), **Pictures taken** (total
-  photos), **Ghosts released**, and **Flowers left** (from the per-site
-  counters). Each shows the live count, unlocked/locked tier chips, and how
-  many more to the next badge.
+- **Achievements** — four tiered categories, each with its own badge tiers:
+  **Places visited** (pins/extras tagged `visited`; 1/5/10/25/50/75/100),
+  **Pictures taken** (total photos; 1/50/100/250/500/750/1000/1500/2000),
+  **Ghosts released** and **Flowers left** (per-site counters;
+  1/50/250/1K/5K/25K/100K/500K/1M). Each shows the live count, unlocked/locked
+  tier chips, and how many more to the next badge.
+
+Cake button: **ghosts rise from the bottom of the screen** across the full
+width and fade out by 85% up; **confetti** bursts from the button.
 
 State is device-local in `urbexAtlasRecord.v1`: `seen` (surfaced in the list
 or auto-opened — clears the badge), `opened` (card actually opened — clears the
