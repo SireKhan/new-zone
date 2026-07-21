@@ -129,6 +129,8 @@
     #side{width:100%;min-width:0;height:50%;order:2;border-right:none;border-top:1px solid var(--hair)}
     #list{min-height:0;-webkit-overflow-scrolling:touch}
     #map{order:1;flex:1 1 0;min-height:0}
+    /* iOS Safari auto-zooms the page when focusing an input under 16px — keep these at 16px */
+    #q,#gps,.modal input[type=text],.modal input[type=password],.modal textarea,.modal select{font-size:16px}
 
     #filterTab{display:flex;align-items:center;gap:9px;width:100%;padding:12px 14px;
       background:#2c343c;color:#e8e4da;border:none;border-bottom:1px solid var(--hair);
