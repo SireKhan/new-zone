@@ -1,0 +1,14 @@
+{
+  "name": "Urbex Master Atlas",
+  "short_name": "Urbex Atlas",
+  "description": "Field map of surveyed urbex sites plus your own pins, notes, and photos.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f2efe9",
+  "theme_color": "#22292f",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
