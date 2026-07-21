@@ -179,8 +179,15 @@ horizon. Go find somewhere new."); tap the card to fly to the pin and open its
 popup; dismissible (never destroys the event); **`prefers-reduced-motion`** →
 no particles, counters still count; optional sound, **default off**.
 
+Layout: a centered column on a **soft-silver** card — big title
+(`{years} Year Anniversary!` / `{years} Year Memorial`), a rounded image box,
+the flavor line, then the button. When a site has **no photo**, the box shows
+`fallback-site.svg` (a utility-pole silhouette) with a **black border**.
+
 Performance: one `requestAnimationFrame` loop, particle cap 420, canvas
-transforms only.
+transforms only. Emoji are pre-rendered once to sprite canvases and blitted
+with `drawImage` (never per-frame `fillText`), and photo color sampling is
+cached per image — so spam-clicking holds ~60fps even at the cap.
 
 Counters and seen/opened state live in **`urbexAtlasRecord.v1`** (device-local,
 never synced). At most **one** card fires on launch — today's most significant

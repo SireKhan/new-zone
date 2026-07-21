@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 600" width="500" height="600">
+  <rect width="500" height="600" fill="#ffffff"/>
+  <g stroke="#000" stroke-width="1.1" fill="none" opacity="0.9">
+    <!-- radiating overhead wires -->
+    <path d="M250 150 L500 60"/><path d="M250 150 L500 110"/><path d="M250 150 L500 165"/>
+    <path d="M250 150 L500 230"/><path d="M250 150 L500 300"/><path d="M250 150 L500 380"/>
+    <path d="M250 175 L500 470"/><path d="M250 210 L500 560"/>
+    <path d="M232 150 L0 250"/><path d="M232 175 L0 360"/><path d="M232 210 L0 470"/>
+    <path d="M232 240 L0 560"/><path d="M245 130 L120 0"/><path d="M258 130 L360 0"/>
+    <path d="M250 150 L470 0"/><path d="M250 150 L40 0"/>
+  </g>
+  <g fill="#000">
+    <!-- crossarms -->
+    <rect x="150" y="140" width="200" height="12"/>
+    <rect x="165" y="205" width="170" height="12"/>
+    <rect x="180" y="268" width="140" height="11"/>
+    <!-- insulators -->
+    <circle cx="170" cy="136" r="7"/><circle cx="215" cy="136" r="7"/><circle cx="285" cy="136" r="7"/><circle cx="330" cy="136" r="7"/>
+    <circle cx="185" cy="201" r="6"/><circle cx="250" cy="201" r="6"/><circle cx="315" cy="201" r="6"/>
+    <circle cx="200" cy="264" r="6"/><circle cx="300" cy="264" r="6"/>
+    <!-- pole -->
+    <polygon points="236,120 264,120 274,600 226,600"/>
+    <!-- transformer -->
+    <rect x="255" y="360" width="78" height="120" rx="8"/>
+    <rect x="268" y="345" width="52" height="20"/>
+    <rect x="278" y="480" width="32" height="30"/>
+    <!-- guy wires / hardware -->
+    <path d="M264 200 L340 470" stroke="#000" stroke-width="3" fill="none"/>
+    <path d="M236 175 L150 470" stroke="#000" stroke-width="2" fill="none"/>
+  </g>
+</svg>
