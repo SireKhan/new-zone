@@ -127,7 +127,52 @@
    "tags": [
     "visited"
    ],
-   "photos": [],
+   "photos": [
+    {
+     "src": "photos/b1-1784751645699-0.jpg",
+     "date": null
+    },
+    {
+     "src": "photos/b1-1784751647116-1.jpg",
+     "date": null
+    },
+    {
+     "src": "photos/b1-1784751648547-2.jpg",
+     "date": null
+    },
+    {
+     "src": "photos/b1-1784751649981-3.jpg",
+     "date": null
+    },
+    {
+     "src": "photos/b1-1784751651414-4.jpg",
+     "date": null
+    },
+    {
+     "src": "photos/b1-1784751653055-5.jpg",
+     "date": null
+    },
+    {
+     "src": "photos/b1-1784751654589-6.jpg",
+     "date": null
+    },
+    {
+     "src": "photos/b1-1784751656233-7.jpg",
+     "date": null
+    },
+    {
+     "src": "photos/b1-1784751657969-8.jpg",
+     "date": null
+    },
+    {
+     "src": "photos/b1-1784751659606-9.jpg",
+     "date": null
+    },
+    {
+     "src": "photos/b1-1784751661144-10.jpg",
+     "date": null
+    }
+   ],
    "firstVisit": "2026-03-21",
    "lastVisit": null,
    "demolishedDate": null,
