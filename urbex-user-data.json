@@ -16,6 +16,10 @@
     {
      "src": "photos/p1784571174265-1784593455585-6.jpg",
      "date": null
+    },
+    {
+     "src": "photos/p1784571174265-1784747974947-0.jpg",
+     "date": null
     }
    ],
    "firstVisit": "2026-03-21",
@@ -99,6 +103,22 @@
    "demolishedDate": null,
    "demolitionNoted": null,
    "built": null
+  },
+  {
+   "id": "p1784675733400",
+   "n": "Poughkeepsie Kirkbride",
+   "lat": 41.70694365342898,
+   "lng": -73.93060684204103,
+   "c": "gone",
+   "r": "Hudson Valley",
+   "tags": [],
+   "d": "Burned down",
+   "photos": [],
+   "firstVisit": null,
+   "lastVisit": null,
+   "demolishedDate": "2026-06-04",
+   "demolitionNoted": "2026-07-12",
+   "built": null
   }
  ],
  "extras": {
@@ -117,6 +137,10 @@
  },
  "hiddenBase": [],
  "baseMoves": {
+  "b67": [
+   40.69952775004708,
+   -74.03988361358644
+  ],
   "b10": [
    39.984618368551985,
    -75.07503032684328
