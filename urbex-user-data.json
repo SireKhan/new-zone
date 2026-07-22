@@ -115,7 +115,52 @@
     "visited"
    ],
    "d": "",
-   "photos": [],
+   "photos": [
+    {
+     "src": "photos/p1784645664715-1784753173637-0.jpg",
+     "date": null
+    },
+    {
+     "src": "photos/p1784645664715-1784753175176-1.jpg",
+     "date": null
+    },
+    {
+     "src": "photos/p1784645664715-1784753176980-2.jpg",
+     "date": null
+    },
+    {
+     "src": "photos/p1784645664715-1784753178615-3.jpg",
+     "date": null
+    },
+    {
+     "src": "photos/p1784645664715-1784753179742-4.jpg",
+     "date": null
+    },
+    {
+     "src": "photos/p1784645664715-1784753180973-5.jpg",
+     "date": null
+    },
+    {
+     "src": "photos/p1784645664715-1784753182507-6.jpg",
+     "date": null
+    },
+    {
+     "src": "photos/p1784645664715-1784753184147-7.jpg",
+     "date": null
+    },
+    {
+     "src": "photos/p1784645664715-1784753185682-8.jpg",
+     "date": null
+    },
+    {
+     "src": "photos/p1784645664715-1784753186914-9.jpg",
+     "date": null
+    },
+    {
+     "src": "photos/p1784645664715-1784753188446-10.jpg",
+     "date": null
+    }
+   ],
    "firstVisit": "2025-08-02",
    "lastVisit": null,
    "demolishedDate": null,
@@ -158,6 +203,22 @@
    "lastVisit": null,
    "demolishedDate": null,
    "demolitionNoted": null,
+   "built": null
+  },
+  {
+   "id": "p1784675733400",
+   "n": "Poughkeepsie Kirkbride",
+   "lat": 41.70694365342898,
+   "lng": -73.93060684204103,
+   "c": "gone",
+   "r": "Hudson Valley",
+   "tags": [],
+   "d": "Burned down",
+   "photos": [],
+   "firstVisit": null,
+   "lastVisit": null,
+   "demolishedDate": "2026-06-04",
+   "demolitionNoted": "2026-07-12",
    "built": null
   },
   {
@@ -214,22 +275,6 @@
    "lastVisit": null,
    "demolishedDate": null,
    "demolitionNoted": null,
-   "built": null
-  },
-  {
-   "id": "p1784675733400",
-   "n": "Poughkeepsie Kirkbride",
-   "lat": 41.70694365342898,
-   "lng": -73.93060684204103,
-   "c": "gone",
-   "r": "Hudson Valley",
-   "tags": [],
-   "d": "Burned down",
-   "photos": [],
-   "firstVisit": null,
-   "lastVisit": null,
-   "demolishedDate": "2026-06-04",
-   "demolitionNoted": "2026-07-12",
    "built": null
   }
  ],
@@ -294,13 +339,13 @@
  },
  "hiddenBase": [],
  "baseMoves": {
-  "b10": [
-   39.984618368551985,
-   -75.07503032684328
-  ],
   "b67": [
    40.69952775004708,
    -74.03988361358644
+  ],
+  "b10": [
+   39.984618368551985,
+   -75.07503032684328
   ]
  },
  "baseEdits": {
