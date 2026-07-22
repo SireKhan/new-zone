@@ -165,6 +165,20 @@
   .rrow.memo .rmeta{color:#c98a6a}
   .rrow .rdot{width:9px;height:9px;border-radius:50%;background:#1a73e8;flex:none}
   .rec-empty{padding:30px 24px;text-align:center;font:14px/1.65 Georgia,serif;color:#9aa3ab}
+  /* ---------- "Where Was This?" game ---------- */
+  .btn.off{opacity:.5;cursor:default}
+  #gameVeil .modal{max-width:470px;border-top:4px solid #155e63;position:relative}
+  .g-scores{display:flex;justify-content:space-between;font:10px ui-monospace,Consolas,monospace;letter-spacing:.1em;text-transform:uppercase;color:#7a7666;margin:2px 0 10px}
+  .g-scores b{font:700 15px Georgia,serif;color:var(--ink);margin-left:5px}
+  .g-photo{width:100%;height:270px;border-radius:8px;overflow:hidden;background:#111;display:flex;align-items:center;justify-content:center;cursor:zoom-in}
+  .g-photo img{width:100%;height:100%;object-fit:cover;display:block}
+  .g-q{text-align:center;font:700 17px Georgia,serif;margin:13px 0 11px}
+  .g-choices{display:flex;flex-direction:column;gap:9px}
+  .g-choice{padding:13px 12px;font:14px Georgia,serif;text-align:center;white-space:normal}
+  #gameOver h3,#gameWin h3{font:700 19px Georgia,serif;margin-bottom:5px}
+  .g-result{font:14px/1.55 Georgia,serif;color:#4a4638;margin:6px 0}
+  .g-final{font:12px ui-monospace,Consolas,monospace;letter-spacing:.05em;color:#5a5648;margin:12px 0 16px}
+  #gBest{color:#155e63;font-weight:700}
   .achcat{padding:14px 14px 13px;border-bottom:1px solid #2b3238}
   .ach-head{display:flex;align-items:center;gap:11px}
   .ach-ico{font-size:24px;flex:none}
@@ -255,6 +269,7 @@
     <button class="btn" id="locBtn">&#128205; Near me</button>
     <button class="btn" id="tripBtn">&#129517; Trip</button>
     <button class="btn" id="annBtn">&#127874; Record</button>
+    <button class="btn" id="gameBtn">&#127918; Play</button>
     <button class="btn gh" id="syncBtn">Sync to GitHub</button>
     <button class="btn" id="ghBtn">GitHub &#9881;</button>
     <button class="btn" id="exportBtn">Export</button>
@@ -398,6 +413,27 @@
 
 <div id="annVeil"></div>
 <canvas id="annParticles"></canvas>
+
+<div class="veil" id="gameVeil"><div class="modal" id="gameModal">
+  <button class="annclose" id="gameClose">&times;</button>
+  <div id="gamePlay">
+    <div class="g-scores"><span>Streak <b id="gScore">0</b></span><span>Best <b id="gHigh">0</b></span></div>
+    <div class="g-photo" id="gPhotoWrap"><img id="gPhoto" alt="Where was this?"></div>
+    <div class="g-q">Where was this?</div>
+    <div class="g-choices"><button class="btn g-choice" id="gA"></button><button class="btn g-choice" id="gB"></button></div>
+  </div>
+  <div id="gameOver" style="display:none">
+    <h3>Missed it.</h3>
+    <div class="g-result">That was <b id="gAnswer"></b>.</div>
+    <div class="g-final">Final streak: <b id="gFinal">0</b> &middot; <span id="gBest"></span></div>
+    <button class="btn primary" id="gRestart" style="width:100%">Play again</button>
+  </div>
+  <div id="gameWin" style="display:none">
+    <h3>You've seen them all! &#127942;</h3>
+    <div class="g-result">You made it through every photo in your atlas — a perfect run of <b id="gWinScore">0</b>.</div>
+    <div class="mrow"><button class="btn" id="gWinClose">Close</button><button class="btn primary" id="gWinAgain">Play again</button></div>
+  </div>
+</div></div>
 
 <div id="lightbox"><img id="lightboxImg" alt=""></div>
 <div id="toast"></div>
@@ -988,6 +1024,7 @@ function render(){
   rb.style.display = user.hiddenBase.length ? "" : "none";
   rb.textContent = "Restore "+user.hiddenBase.length+" removed pin"+(user.hiddenBase.length===1?"":"s");
   updateFilterTab(shown);
+  if (typeof updateGameBtn==="function") updateGameBtn();
 }
 /* ---------- mobile filter sheet ---------- */
 const filterTab=document.getElementById("filterTab");
@@ -1857,6 +1894,100 @@ document.getElementById("recDateApply").onclick=()=>{
   if (v){ document.getElementById("recModeCustom").checked=true; setDateOverride(v); }
   syncRecDate(); renderRecord();
 };
+
+/* ================= "Where Was This?" photo game ================= */
+const GAME_KEY="urbexAtlasGame.v1";   // device-local high score only — never synced
+const GAME_NAME="Where Was This?";
+const GAME_HINT="Tag at least 2 visited locations that have photos to play.";
+let gHighScore=0; try{ gHighScore=parseInt(localStorage.getItem(GAME_KEY),10)||0; }catch(e){}
+function gameSaveHigh(){ try{ localStorage.setItem(GAME_KEY, String(gHighScore)); }catch(e){} }
+const gPick=arr=>arr[Math.floor(Math.random()*arr.length)];
+
+// Eligible = tagged "visited" AND ≥1 photo (pins + extras on built-in sites). Recomputed on open.
+function gameEligible(){
+  const out=[];
+  user.pins.forEach(p=>{
+    if ((p.tags||[]).includes(VISITED_TAG) && (p.photos||[]).length)
+      out.push({ id:p.id, name:p.n, region:((p.r||"").trim()||null), photos:p.photos });
+  });
+  Object.keys(user.extras).forEach(id=>{
+    const x=user.extras[id];
+    if ((x.tags||[]).includes(VISITED_TAG) && (x.photos||[]).length){
+      const s=BASE_BY_ID[id], e=user.baseEdits[id]||{};
+      out.push({ id, name:annBaseName(id), region:((((e.r||(s&&s.r)||"")).trim())||null), photos:x.photos });
+    }
+  });
+  return out;
+}
+function gameDistinctPhotos(pool){ const s=new Set(); pool.forEach(l=>l.photos.forEach(ph=>s.add(photoSrc(ph)))); return s.size; }
+
+/* in-memory run state (only the high score persists) */
+let gPool=[], gScore=0, gPrevId=null, gShown=new Set(), gTotal=0, gStartHigh=0, gCurrent=null;
+const gameVeil=document.getElementById("gameVeil");
+
+function updateGameBtn(){
+  const btn=document.getElementById("gameBtn"); if(!btn) return;
+  const ok=gameEligible().length>=2;
+  btn.classList.toggle("off", !ok);
+  btn.title = ok ? ("Play "+GAME_NAME) : GAME_HINT;
+}
+function showGameState(s){
+  document.getElementById("gamePlay").style.display = s==="play"?"":"none";
+  document.getElementById("gameOver").style.display = s==="over"?"":"none";
+  document.getElementById("gameWin").style.display  = s==="win" ?"":"none";
+}
+function updateGameScores(){ document.getElementById("gScore").textContent=gScore; document.getElementById("gHigh").textContent=gHighScore; }
+function openGame(){
+  const pool=gameEligible();
+  if (pool.length<2){ toast(GAME_HINT); return; }
+  gPool=pool; gScore=0; gPrevId=null; gShown=new Set(); gTotal=gameDistinctPhotos(pool); gStartHigh=gHighScore;
+  showGameState("play"); updateGameScores();
+  gameNextRound();
+  gameVeil.classList.add("open");
+}
+function gameNextRound(){
+  // answer: prefer a location (not the previous answer) that still has an unseen photo, so the run can reach the win
+  const nonPrev=gPool.filter(l=>l.id!==gPrevId);
+  const withUnseen=nonPrev.filter(l=>l.photos.some(ph=>!gShown.has(photoSrc(ph))));
+  const answer=gPick(withUnseen.length?withUnseen:(nonPrev.length?nonPrev:gPool));
+  // photo: random, preferring one not yet shown this run (date is irrelevant)
+  const unseen=answer.photos.filter(ph=>!gShown.has(photoSrc(ph)));
+  const photo=gPick(unseen.length?unseen:answer.photos);
+  // distractor: same region when possible (missing region is its own bucket), else any other eligible
+  const others=gPool.filter(l=>l.id!==answer.id);
+  const sameRegion=others.filter(l=>l.region===answer.region);
+  const distractor=gPick(sameRegion.length?sameRegion:others);
+  const options=Math.random()<0.5?[answer,distractor]:[distractor,answer];   // randomized button order
+  gCurrent={answer,photo}; gPrevId=answer.id; gShown.add(photoSrc(photo));
+  document.getElementById("gPhoto").src=resolvePhoto(photoSrc(photo));
+  const a=document.getElementById("gA"), b=document.getElementById("gB");
+  a.textContent=options[0].name; a.onclick=()=>gameGuess(options[0]);
+  b.textContent=options[1].name; b.onclick=()=>gameGuess(options[1]);
+}
+function gameGuess(choice){
+  if (choice.id===gCurrent.answer.id){
+    gScore++;
+    if (gScore>gHighScore){ gHighScore=gScore; gameSaveHigh(); }
+    updateGameScores();
+    if (gShown.size>=gTotal) gameShowWin();   // seen every photo → win
+    else gameNextRound();
+  } else gameShowOver();
+}
+function gameShowOver(){
+  document.getElementById("gAnswer").textContent=gCurrent.answer.name;
+  document.getElementById("gFinal").textContent=gScore;
+  document.getElementById("gBest").textContent = (gScore>gStartHigh && gScore>0) ? "🏅 new best!" : ("best: "+gHighScore);
+  showGameState("over");
+}
+function gameShowWin(){ document.getElementById("gWinScore").textContent=gScore; showGameState("win"); }
+function closeGame(){ gameVeil.classList.remove("open"); }
+document.getElementById("gameBtn").onclick=openGame;
+document.getElementById("gameClose").onclick=closeGame;
+gameVeil.addEventListener("click", e=>{ if(e.target===gameVeil) closeGame(); });
+document.getElementById("gRestart").onclick=openGame;
+document.getElementById("gWinAgain").onclick=openGame;
+document.getElementById("gWinClose").onclick=closeGame;
+document.getElementById("gPhotoWrap").onclick=()=>{ const s=document.getElementById("gPhoto").src; if(s){ document.getElementById("lightboxImg").src=s; document.getElementById("lightbox").classList.add("open"); } };
 
 /* ---------- offline support (service worker caches viewed map tiles + app shell) ---------- */
 if ("serviceWorker" in navigator && (location.protocol==="https:" || location.hostname==="localhost" || location.hostname==="127.0.0.1")){
