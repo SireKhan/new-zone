@@ -1379,13 +1379,7 @@ function parseTiff(dv, t){
   function ascii(e){ const c=u32(e+4), p=valOff(e); let s=""; for(let i=0;i<c-1;i++) s+=String.fromCharCode(dv.getUint8(t+p+i)); return s; }
   const out={};
   const ifd0=entries(u32(4));
-  if (ifd0[0x8769]){
-    const ex=entries(u32(ifd0[0x8769]+8));
-    if (ex[0x9003]){
-      const m=ascii(ex[0x9003]).match(/(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})/);
-      if (m) out.when=new Date(+m[1],+m[2]-1,+m[3],+m[4],+m[5],+m[6]);
-    }
-  }
+  /* Photo capture date (DateTimeOriginal) is intentionally NOT read — dates are manual only. */
   if (ifd0[0x8825]){
     const g=entries(u32(ifd0[0x8825]+8));
     if (g[0x0002] && g[0x0004]){
@@ -1396,7 +1390,7 @@ function parseTiff(dv, t){
       if ((lat||lng) && Math.abs(lat)<=90 && Math.abs(lng)<=180){ out.lat=lat; out.lng=lng; }
     }
   }
-  return (out.lat!==undefined || out.when) ? out : null;
+  return (out.lat!==undefined) ? out : null;
 }
 function readExif(file){
   return new Promise(res=>{
@@ -1409,8 +1403,7 @@ function readExif(file){
 function offerPhotoGPS(x){
   if (modalCtx.mode==="extra") return;
   const where=x.lat.toFixed(5)+", "+x.lng.toFixed(5);
-  const when=x.when ? " (taken "+x.when.toLocaleDateString()+")" : "";
-  if (!confirm("This photo has GPS coordinates: "+where+when+".\nPlace the pin exactly there?")) return;
+  if (!confirm("This photo has GPS coordinates: "+where+".\nPlace the pin exactly there?")) return;
   const ll=L.latLng(x.lat,x.lng);
   if (modalCtx.mode==="newPin") pendingLatLng=ll; else modalMoveTo=ll;
   document.getElementById("mHint").textContent=ll.lat.toFixed(4)+", "+ll.lng.toFixed(4)+" — from photo GPS";
@@ -1418,20 +1411,12 @@ function offerPhotoGPS(x){
 document.getElementById("mPhotos").addEventListener("change", async e=>{
   const files=[...e.target.files];
   if (!files.length) return;
-  const metas=await Promise.all(files.map(async (f,i)=>({f, i, exif:await readExif(f)})));
-  metas.sort((a,b)=>{
-    const ta=a.exif&&a.exif.when ? a.exif.when.getTime() : null;
-    const tb=b.exif&&b.exif.when ? b.exif.when.getTime() : null;
-    if (ta!==null && tb!==null) return ta-tb;
-    if (ta!==null) return -1;
-    if (tb!==null) return 1;
-    return a.i-b.i;
-  });
+  // Only GPS is read from EXIF (to optionally place the pin). Dates are never read — set manually.
+  const metas=await Promise.all(files.map(async f=>({f, exif:await readExif(f)})));
   const g=metas.find(m=>m.exif && m.exif.lat!==undefined);
   if (g) offerPhotoGPS(g.exif);
   for (const m of metas){
-    const date = m.exif && m.exif.when ? ymd(m.exif.when) : null;
-    await new Promise(res=> compressImage(m.f, src=>{ modalPhotos.push({src, date}); res(); }));
+    await new Promise(res=> compressImage(m.f, src=>{ modalPhotos.push({src, date:null}); res(); }));
   }
   drawThumbs();
 });
