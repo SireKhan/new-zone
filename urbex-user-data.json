@@ -105,62 +105,6 @@
    "built": null
   },
   {
-   "id": "p1784650502493",
-   "n": "Steele Heddle Building",
-   "lat": 40.002703824995486,
-   "lng": -75.16503989696504,
-   "c": "caution",
-   "r": "Eastern PA",
-   "tags": [
-    "factory"
-   ],
-   "d": "",
-   "photos": [],
-   "firstVisit": null,
-   "lastVisit": null,
-   "demolishedDate": null,
-   "demolitionNoted": null,
-   "built": null
-  },
-  {
-   "id": "p1784652836633",
-   "n": "John Bartram High School",
-   "lat": 39.92188321699703,
-   "lng": -75.23396462202074,
-   "c": "caution",
-   "r": "Eastern PA",
-   "tags": [
-    "poi",
-    "school"
-   ],
-   "d": "",
-   "photos": [],
-   "firstVisit": null,
-   "lastVisit": null,
-   "demolishedDate": null,
-   "demolitionNoted": null,
-   "built": null
-  },
-  {
-   "id": "p1784666317035",
-   "n": "Uptown Theater",
-   "lat": 39.98741835210361,
-   "lng": -75.15640318393709,
-   "c": "caution",
-   "r": "Eastern PA",
-   "tags": [
-    "poi",
-    "theater"
-   ],
-   "d": "",
-   "photos": [],
-   "firstVisit": null,
-   "lastVisit": null,
-   "demolishedDate": null,
-   "demolitionNoted": null,
-   "built": null
-  },
-  {
    "id": "p1784675733400",
    "n": "Poughkeepsie Kirkbride",
    "lat": 41.70694365342898,
@@ -238,13 +182,13 @@
  },
  "hiddenBase": [],
  "baseMoves": {
-  "b10": [
-   39.984618368551985,
-   -75.07503032684328
-  ],
   "b67": [
    40.69952775004708,
    -74.03988361358644
+  ],
+  "b10": [
+   39.984618368551985,
+   -75.07503032684328
   ]
  },
  "baseEdits": {
