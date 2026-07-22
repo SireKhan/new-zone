@@ -88,7 +88,11 @@
   .pp-user h5{font:10px ui-monospace,Consolas,monospace;letter-spacing:.12em;text-transform:uppercase;color:#155e63;margin-bottom:3px}
   .pp-tags{margin-top:6px}
   .pp-tags span{display:inline-block;font:10px ui-monospace,Consolas,monospace;background:#e0ecec;color:#155e63;border-radius:10px;padding:1px 8px;margin:2px 3px 0 0}
-  .pp-photos{display:flex;flex-wrap:wrap;gap:4px;margin-top:7px}
+  .pp-phototab{display:inline-flex;align-items:center;gap:7px;margin-top:8px;font:10px ui-monospace,Consolas,monospace;letter-spacing:.06em;text-transform:uppercase;background:#eae6dc;border:1px solid #cfc8b8;border-radius:5px;padding:5px 10px;cursor:pointer;color:#5a5648;user-select:none}
+  .pp-phototab .chev{transition:transform .2s;font-size:9px}
+  .pp-phototab.open .chev{transform:rotate(180deg)}
+  .pp-photos{display:none;grid-template-columns:repeat(3,76px);gap:4px;margin-top:7px;max-height:120px;overflow-y:auto;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;padding-right:2px}
+  .pp-photos.open{display:grid}
   .pp-photos img{width:76px;height:58px;object-fit:cover;border-radius:3px;cursor:zoom-in;border:1px solid #ccc}
   .pp-region{font:10px ui-monospace,Consolas,monospace;color:#888;margin-top:7px;letter-spacing:.08em;text-transform:uppercase}
   .pp-actions{margin-top:9px;display:flex;gap:5px;flex-wrap:wrap}
@@ -702,8 +706,12 @@ function rebuildPinMarkers(){
 
 /* ---------- popups ---------- */
 function el(tag, cls, txt){ const e=document.createElement(tag); if(cls)e.className=cls; if(txt!==undefined)e.textContent=txt; return e; }
+function reflowOpenPopup(){ try{ if (map._popup && map._popup.update) map._popup.update(); }catch(e){} }
 function photoStrip(parent, photos){
   if(!photos || !photos.length) return;
+  // a dropdown tab: collapsed by default; opens a scrollable grid showing 6 photos (3×2) at a time
+  const tab = el("button","pp-phototab"); tab.type="button";
+  tab.innerHTML = "📷 "+photos.length+" photo"+(photos.length===1?"":"s")+' <span class="chev">▾</span>';
   const w = el("div","pp-photos");
   photos.forEach(ph=>{
     const src = photoSrc(ph);
@@ -712,7 +720,8 @@ function photoStrip(parent, photos){
     img.onclick = ()=>{ document.getElementById("lightboxImg").src=resolvePhoto(src); document.getElementById("lightbox").classList.add("open"); };
     w.appendChild(img);
   });
-  parent.appendChild(w);
+  tab.onclick = ()=>{ const open=w.classList.toggle("open"); tab.classList.toggle("open", open); reflowOpenPopup(); };
+  parent.appendChild(tab); parent.appendChild(w);
 }
 function tagStrip(parent, tags){
   if(!tags || !tags.length) return;
